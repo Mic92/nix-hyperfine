@@ -83,6 +83,7 @@
             } ''
               cp ${./nix_hyperfine.py} nix_hyperfine.py
               cp -r ${./tests} tests
+              cp ${./pyproject.toml} pyproject.toml
               ${pkgs.ruff}/bin/ruff format --check .
               touch $out
             '';
@@ -92,6 +93,7 @@
             } ''
               cp ${./nix_hyperfine.py} nix_hyperfine.py
               cp -r ${./tests} tests
+              cp ${./pyproject.toml} pyproject.toml
               ${pkgs.ruff}/bin/ruff check .
               touch $out
             '';
