@@ -24,26 +24,37 @@
             ];
           };
           
-          nix-hyperfine = pkgs.stdenv.mkDerivation {
+          nix-hyperfine = python.pkgs.buildPythonApplication rec {
             pname = "nix-hyperfine";
             version = "0.1.0";
+            pyproject = true;
             
-            src = lib.fileset.toSource {
-              root = ./.;
-              fileset = ./nix_hyperfine.py;
-            };
+            src = sourceFiles;
             
-            buildInputs = [ python ];
+            build-system = with python.pkgs; [
+              setuptools
+            ];
             
-            dontBuild = true;
+            dependencies = [ ];
             
-            installPhase = ''
-              mkdir -p $out/bin
-              cp $src/nix_hyperfine.py $out/bin/nix-hyperfine
-              chmod +x $out/bin/nix-hyperfine
-              substituteInPlace $out/bin/nix-hyperfine \
-                --replace "#!/usr/bin/env python3" "#!${python}/bin/python3"
+            nativeCheckInputs = with python.pkgs; [
+              pytestCheckHook
+            ] ++ [
+              pkgs.nix
+              pkgs.hyperfine
+              pkgs.which
+            ];
+            
+            # We need to disable sandbox for tests that use nix
+            doCheck = false;
+            
+            # Wrap the executable to include hyperfine in PATH
+            postInstall = ''
+              wrapProgram $out/bin/nix-hyperfine \
+                --prefix PATH : ${lib.makeBinPath [ pkgs.hyperfine ]}
             '';
+            
+            nativeBuildInputs = [ pkgs.makeWrapper ];
             
             meta = with lib; {
               description = "Wrapper around hyperfine for benchmarking Nix builds";
@@ -57,7 +68,6 @@
 
           pythonEnv = python.withPackages (ps: with ps; [
             pytest
-            pytest-cov
             mypy
           ]);
         in
