@@ -2,6 +2,7 @@
 """Integration tests for nix-hyperfine."""
 
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -105,7 +106,7 @@ class TestParseDerivationSpec:
 
 
 @pytest.mark.skipif(
-    subprocess.run(["which", "nix"], capture_output=True).returncode != 0,
+    shutil.which("nix") is None,
     reason="Nix not available",
 )
 class TestNixIntegration:

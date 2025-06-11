@@ -10,9 +10,19 @@
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
 
-      perSystem = { config, self', inputs', pkgs, system, ... }: 
+      perSystem = { config, self', inputs', pkgs, system, lib, ... }: 
         let
           python = pkgs.python312;
+          
+          # Define source files using fileset
+          sourceFiles = lib.fileset.toSource {
+            root = ./.;
+            fileset = lib.fileset.unions [
+              ./nix_hyperfine.py
+              ./tests
+              ./pyproject.toml
+            ];
+          };
           
           nix-hyperfine = pkgs.writeScriptBin "nix-hyperfine" ''
             #!${python}/bin/python3
@@ -62,49 +72,57 @@
           };
 
           checks = {
-            tests = pkgs.runCommand "nix-hyperfine-tests" {
-              buildInputs = [ pythonEnv nix-hyperfine pkgs.nix pkgs.hyperfine ];
-            } ''
-              # Copy test files
-              cp -r ${./tests} tests
-              cp ${./nix_hyperfine.py} nix_hyperfine.py
-              
-              # Make nix-hyperfine available in PATH
-              export PATH="${nix-hyperfine}/bin:$PATH"
-              
-              # Run pytest
-              ${pythonEnv}/bin/pytest tests -v
-              
-              touch $out
-            '';
+            tests = pkgs.stdenv.mkDerivation {
+              name = "nix-hyperfine-tests";
+              src = sourceFiles;
+              buildInputs = [ pythonEnv nix-hyperfine pkgs.nix pkgs.hyperfine pkgs.which ];
+              buildPhase = ''
+                # Make nix-hyperfine available in PATH
+                export PATH="${nix-hyperfine}/bin:$PATH"
+                
+                # Run pytest
+                pytest tests -v
+              '';
+              installPhase = ''
+                touch $out
+              '';
+            };
 
-            formatting = pkgs.runCommand "nix-hyperfine-format-check" {
+            formatting = pkgs.stdenv.mkDerivation {
+              name = "nix-hyperfine-format-check";
+              src = sourceFiles;
               buildInputs = [ pkgs.ruff ];
-            } ''
-              cp ${./nix_hyperfine.py} nix_hyperfine.py
-              cp -r ${./tests} tests
-              cp ${./pyproject.toml} pyproject.toml
-              ${pkgs.ruff}/bin/ruff format --check .
-              touch $out
-            '';
+              buildPhase = ''
+                ruff format --check .
+              '';
+              installPhase = ''
+                touch $out
+              '';
+            };
 
-            linting = pkgs.runCommand "nix-hyperfine-lint-check" {
+            linting = pkgs.stdenv.mkDerivation {
+              name = "nix-hyperfine-lint-check";
+              src = sourceFiles;
               buildInputs = [ pkgs.ruff ];
-            } ''
-              cp ${./nix_hyperfine.py} nix_hyperfine.py
-              cp -r ${./tests} tests
-              cp ${./pyproject.toml} pyproject.toml
-              ${pkgs.ruff}/bin/ruff check .
-              touch $out
-            '';
+              buildPhase = ''
+                ruff check .
+              '';
+              installPhase = ''
+                touch $out
+              '';
+            };
 
-            typing = pkgs.runCommand "nix-hyperfine-type-check" {
+            typing = pkgs.stdenv.mkDerivation {
+              name = "nix-hyperfine-type-check";
+              src = sourceFiles;
               buildInputs = [ pythonEnv ];
-            } ''
-              cp ${./nix_hyperfine.py} nix_hyperfine.py
-              ${pythonEnv}/bin/mypy nix_hyperfine.py
-              touch $out
-            '';
+              buildPhase = ''
+                mypy nix_hyperfine.py
+              '';
+              installPhase = ''
+                touch $out
+              '';
+            };
           };
         };
     };
