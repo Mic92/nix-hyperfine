@@ -19,6 +19,12 @@ nix run github:yourusername/nix-hyperfine -- nixpkgs#hello
 
 # Install to profile
 nix profile install github:yourusername/nix-hyperfine
+
+# Or add to your flake inputs
+{
+  inputs.nix-hyperfine.url = "github:yourusername/nix-hyperfine";
+  # ...
+}
 ```
 
 ### Traditional Nix

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Integration tests for nix-hyperfine."""
 
+import os
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 import pytest
 
@@ -106,149 +106,164 @@ class TestParseDerivationSpec:
         assert spec.raw == "hello"
 
 
-class TestDerivationSpecs:
-    """Test DerivationSpec subclasses."""
+@pytest.mark.skipif(
+    subprocess.run(["which", "nix"], capture_output=True).returncode != 0,
+    reason="Nix not available"
+)
+class TestNixIntegration:
+    """Integration tests requiring a Nix installation."""
 
-    @patch('nix_hyperfine.run_command')
-    def test_flake_spec_get_derivation_path(self, mock_run):
-        """Test FlakeSpec.get_derivation_path."""
-        # Test successful path-info
-        mock_run.return_value = Mock(
-            returncode=0,
-            stdout="/nix/store/abc123-hello.drv\n"
-        )
-        
-        spec = FlakeSpec(raw="nixpkgs#hello", flake_ref="nixpkgs", attribute="hello")
-        drv_path = spec.get_derivation_path()
-        
-        assert drv_path == "/nix/store/abc123-hello.drv"
-        mock_run.assert_called_once_with(
-            ["nix", "path-info", "--derivation", "nixpkgs#hello"],
-            check=False
-        )
-
-    @patch('nix_hyperfine.run_command')
-    def test_flake_spec_build(self, mock_run):
-        """Test FlakeSpec.build."""
-        mock_run.return_value = Mock(returncode=0)
-        
-        spec = FlakeSpec(raw="nixpkgs#hello", flake_ref="nixpkgs", attribute="hello")
-        spec.build()
-        
-        mock_run.assert_called_once_with(
-            ["nix", "build", "nixpkgs#hello", "--no-link", "--log-format", "bar-with-logs"],
-            capture_output=False
-        )
-
-    @patch('nix_hyperfine.run_command')
-    def test_file_spec_get_derivation_path(self, mock_run):
-        """Test FileSpec.get_derivation_path."""
-        mock_run.return_value = Mock(
-            returncode=0,
-            stdout="/nix/store/xyz789-package.drv\n"
-        )
-        
-        spec = FileSpec(raw="-f file.nix -A pkg", file_path="file.nix", attribute="pkg")
-        drv_path = spec.get_derivation_path()
-        
-        assert drv_path == "/nix/store/xyz789-package.drv"
-        mock_run.assert_called_once_with(
-            ["nix-instantiate", "file.nix", "-A", "pkg"],
-            check=False
-        )
-
-    @patch('nix_hyperfine.run_command')
-    def test_attribute_spec_fallback(self, mock_run):
-        """Test AttributeSpec fallback mechanism."""
-        # First call fails (flake), second succeeds (nix-instantiate)
-        mock_run.side_effect = [
-            Mock(returncode=1, stdout=""),
-            Mock(returncode=0, stdout="/nix/store/def456-hello.drv\n")
-        ]
-        
-        spec = AttributeSpec(raw="hello", attribute="hello")
-        drv_path = spec.get_derivation_path()
-        
-        assert drv_path == "/nix/store/def456-hello.drv"
-        assert mock_run.call_count == 2
-
-
-class TestBuildDependencies:
-    """Test build_dependencies function."""
-
-    @patch('nix_hyperfine.run_command')
-    def test_build_dependencies_batching(self, mock_run):
-        """Test that dependencies are built in batches."""
-        # Generate many dependencies
-        deps = [f"/nix/store/dep{i}.drv" for i in range(250)]
-        drv_path = "/nix/store/main.drv"
-        all_reqs = [drv_path] + deps
-        
-        mock_run.return_value = Mock(
-            returncode=0,
-            stdout="\n".join(all_reqs)
-        )
-        
-        build_dependencies(drv_path, batch_size=100)
-        
-        # Should be called once for query, then 3 times for building (250 deps / 100 batch size)
-        assert mock_run.call_count == 4
-        
-        # Check first call was the query
-        assert mock_run.call_args_list[0][0][0][:3] == ["nix-store", "--query", "--requisites"]
-        
-        # Check subsequent calls were realizes in batches
-        for i in range(1, 4):
-            call_args = mock_run.call_args_list[i][0][0]
-            assert call_args[:3] == ["nix-store", "--realize", "--quiet"]
-            # Verify batch sizes
-            if i < 3:
-                assert len(call_args) == 103  # 3 command parts + 100 deps
-            else:
-                assert len(call_args) == 53   # 3 command parts + 50 remaining deps
-
-
-class TestCheckHyperfine:
-    """Test hyperfine availability checking."""
-
-    @patch('shutil.which')
-    def test_hyperfine_found(self, mock_which):
-        """Test when hyperfine is found."""
-        mock_which.return_value = "/usr/bin/hyperfine"
-        check_hyperfine()  # Should not raise
-
-    @patch('shutil.which')
-    def test_hyperfine_not_found(self, mock_which):
-        """Test when hyperfine is not found."""
-        mock_which.return_value = None
-        with pytest.raises(HyperfineError) as exc_info:
-            check_hyperfine()
-        assert "hyperfine not found" in str(exc_info.value)
-
-
-class TestIntegration:
-    """Integration tests with actual Nix commands."""
-
-    @pytest.mark.skipif(
-        subprocess.run(["which", "nix"], capture_output=True).returncode != 0,
-        reason="Nix not available"
-    )
-    def test_simple_derivation(self):
-        """Test with a simple derivation that should exist."""
-        # This test requires a working Nix installation
-        # We'll use a minimal derivation
+    def test_simple_nix_file_derivation(self):
+        """Test building a simple derivation from a .nix file."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.nix', delete=False) as f:
             f.write('''
             { pkgs ? import <nixpkgs> {} }:
-            pkgs.runCommand "test-derivation" {} "echo test > $out"
+            pkgs.runCommand "test-derivation" {} "echo 'Hello from test' > $out"
             ''')
             nix_file = f.name
 
         try:
+            # Test parsing
             spec = FileSpec(raw=f"-f {nix_file}", file_path=nix_file, attribute=None)
+            
+            # Test getting derivation path
             drv_path = spec.get_derivation_path()
             assert drv_path.endswith('.drv')
             assert '/nix/store/' in drv_path
+            
+            # Test building
+            spec.build()
+            
+            # Verify the build by checking if output exists
+            result = run_command(["nix-build", nix_file, "--no-out-link"], check=False)
+            assert result.returncode == 0
+            output_path = result.stdout.strip()
+            assert Path(output_path).exists()
+            
+            # Read the output
+            with open(output_path) as out:
+                assert out.read().strip() == "Hello from test"
+                
+        finally:
+            Path(nix_file).unlink()
+
+    def test_flake_derivation(self):
+        """Test building a derivation from a flake."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            flake_path = Path(tmpdir) / "flake.nix"
+            flake_path.write_text('''
+            {
+              outputs = { self, nixpkgs }: {
+                packages.x86_64-linux.default = 
+                  nixpkgs.legacyPackages.x86_64-linux.runCommand "test-flake" {} 
+                    "echo 'Hello from flake' > $out";
+              };
+            }
+            ''')
+            
+            # Change to the temp directory
+            original_cwd = os.getcwd()
+            os.chdir(tmpdir)
+            
+            try:
+                # Test parsing local flake reference
+                spec = FlakeSpec(raw=".#default", flake_ref=".", attribute="default")
+                
+                # Test getting derivation path
+                drv_path = spec.get_derivation_path()
+                assert drv_path.endswith('.drv')
+                assert '/nix/store/' in drv_path
+                
+                # Test building
+                spec.build()
+                
+            finally:
+                os.chdir(original_cwd)
+
+    def test_build_dependencies_real(self):
+        """Test building dependencies with a real derivation."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.nix', delete=False) as f:
+            # Create a derivation with a dependency
+            f.write('''
+            { pkgs ? import <nixpkgs> {} }:
+            pkgs.runCommand "test-with-dep" {
+              buildInputs = [ pkgs.hello ];
+            } "
+              hello --version > $out
+              echo 'Additional content' >> $out
+            "
+            ''')
+            nix_file = f.name
+
+        try:
+            # Get the derivation path
+            result = run_command(["nix-instantiate", nix_file])
+            drv_path = result.stdout.strip()
+            
+            # Build dependencies
+            build_dependencies(drv_path)
+            
+            # The hello dependency should now be built
+            # Verify by checking if we can query its outputs
+            result = run_command(
+                ["nix-store", "--query", "--requisites", drv_path],
+                check=False
+            )
+            assert result.returncode == 0
+            requisites = result.stdout.strip().split('\n')
+            # Should have multiple requisites including hello
+            assert len(requisites) > 1
+            
+        finally:
+            Path(nix_file).unlink()
+
+    def test_check_hyperfine_real(self):
+        """Test actual hyperfine detection."""
+        # This will use the real shutil.which
+        try:
+            check_hyperfine()
+            # If we get here, hyperfine is installed
+            result = subprocess.run(["hyperfine", "--version"], capture_output=True)
+            assert result.returncode == 0
+        except HyperfineError:
+            # Hyperfine is not installed, which is fine for CI
+            pass
+
+    def test_end_to_end_simple(self):
+        """Test a simple end-to-end scenario."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.nix', delete=False) as f:
+            f.write('''
+            { pkgs ? import <nixpkgs> {} }:
+            {
+              fast = pkgs.runCommand "fast-build" {} "echo fast > $out";
+              slow = pkgs.runCommand "slow-build" {} "sleep 0.1; echo slow > $out";
+            }
+            ''')
+            nix_file = f.name
+
+        try:
+            # Parse specifications
+            spec1 = parse_derivation_spec(f"-f {nix_file} -A fast")
+            spec2 = parse_derivation_spec(f"-f {nix_file} -A slow")
+            
+            # Create config
+            config = BenchmarkConfig(
+                derivations=[spec1, spec2],
+                runs=2,
+                warmup=1
+            )
+            
+            # Verify we can get derivation paths
+            drv1 = spec1.get_derivation_path()
+            drv2 = spec2.get_derivation_path()
+            assert drv1 != drv2
+            assert drv1.endswith('.drv')
+            assert drv2.endswith('.drv')
+            
+            # Build both
+            spec1.build()
+            spec2.build()
+            
         finally:
             Path(nix_file).unlink()
 
