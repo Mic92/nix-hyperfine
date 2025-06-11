@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.coverage
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+
+# Nix
+result
+result-*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+htmlcov/
+.tox/
+.coverage.*
