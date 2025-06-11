@@ -24,10 +24,36 @@
             ];
           };
           
-          nix-hyperfine = pkgs.writeScriptBin "nix-hyperfine" ''
-            #!${python}/bin/python3
-            ${builtins.readFile ./nix_hyperfine.py}
-          '';
+          nix-hyperfine = pkgs.stdenv.mkDerivation {
+            pname = "nix-hyperfine";
+            version = "0.1.0";
+            
+            src = lib.fileset.toSource {
+              root = ./.;
+              fileset = ./nix_hyperfine.py;
+            };
+            
+            buildInputs = [ python ];
+            
+            dontBuild = true;
+            
+            installPhase = ''
+              mkdir -p $out/bin
+              cp $src/nix_hyperfine.py $out/bin/nix-hyperfine
+              chmod +x $out/bin/nix-hyperfine
+              substituteInPlace $out/bin/nix-hyperfine \
+                --replace "#!/usr/bin/env python3" "#!${python}/bin/python3"
+            '';
+            
+            meta = with lib; {
+              description = "Wrapper around hyperfine for benchmarking Nix builds";
+              homepage = "https://github.com/yourusername/nix-hyperfine";
+              license = licenses.mit;
+              maintainers = [ ];
+              mainProgram = "nix-hyperfine";
+              platforms = platforms.all;
+            };
+          };
 
           pythonEnv = python.withPackages (ps: with ps; [
             pytest
