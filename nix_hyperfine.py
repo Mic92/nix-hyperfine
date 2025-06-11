@@ -8,23 +8,25 @@ import argparse
 import shutil
 import subprocess
 import sys
-from dataclasses import dataclass, field
-
-
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 
 
 class NixError(Exception):
     """Base exception for Nix-related errors."""
+
     pass
 
 
 class HyperfineError(Exception):
     """Exception for hyperfine-related errors."""
+
     pass
 
 
-def run_command(cmd: list[str], check: bool = True, capture_output: bool = True) -> subprocess.CompletedProcess:
+def run_command(
+    cmd: list[str], check: bool = True, capture_output: bool = True
+) -> subprocess.CompletedProcess:
     """Run a command and return the result.
 
     Args:
@@ -36,12 +38,7 @@ def run_command(cmd: list[str], check: bool = True, capture_output: bool = True)
         CompletedProcess instance
     """
     try:
-        return subprocess.run(
-            cmd,
-            check=check,
-            capture_output=capture_output,
-            text=True
-        )
+        return subprocess.run(cmd, check=check, capture_output=capture_output, text=True)
     except subprocess.CalledProcessError as e:
         # Re-raise with more context
         raise NixError(f"Command failed: {' '.join(cmd)}\n{e.stderr}") from e
@@ -50,6 +47,7 @@ def run_command(cmd: list[str], check: bool = True, capture_output: bool = True)
 @dataclass
 class DerivationSpec(ABC):
     """Base class for parsed derivation specifications."""
+
     raw: str  # Original specification string
 
     @abstractmethod
@@ -66,6 +64,7 @@ class DerivationSpec(ABC):
 @dataclass
 class FlakeSpec(DerivationSpec):
     """Flake reference specification (e.g., nixpkgs#hello)."""
+
     flake_ref: str
     attribute: str
 
@@ -75,8 +74,7 @@ class FlakeSpec(DerivationSpec):
 
         # Try nix path-info first
         result = run_command(
-            ["nix", "path-info", "--derivation", f"{self.flake_ref}#{self.attribute}"],
-            check=False
+            ["nix", "path-info", "--derivation", f"{self.flake_ref}#{self.attribute}"], check=False
         )
 
         if result.returncode == 0 and result.stdout.strip():
@@ -84,8 +82,7 @@ class FlakeSpec(DerivationSpec):
         else:
             # Fallback to nix eval
             result = run_command(
-                ["nix", "eval", "--raw", f"{self.flake_ref}#{self.attribute}.drvPath"],
-                check=False
+                ["nix", "eval", "--raw", f"{self.flake_ref}#{self.attribute}.drvPath"], check=False
             )
 
             if result.returncode == 0 and result.stdout.strip():
@@ -99,8 +96,12 @@ class FlakeSpec(DerivationSpec):
     def build(self, capture_output: bool = False) -> None:
         """Build using nix build."""
         build_cmd = [
-            "nix", "build", f"{self.flake_ref}#{self.attribute}", "--no-link",
-            "--log-format", "bar-with-logs"
+            "nix",
+            "build",
+            f"{self.flake_ref}#{self.attribute}",
+            "--no-link",
+            "--log-format",
+            "bar-with-logs",
         ]
         run_command(build_cmd, capture_output=capture_output)
 
@@ -108,6 +109,7 @@ class FlakeSpec(DerivationSpec):
 @dataclass
 class FileSpec(DerivationSpec):
     """Traditional nix file specification (e.g., -f file.nix -A attr)."""
+
     file_path: str
     attribute: str | None = None
 
@@ -142,6 +144,7 @@ class FileSpec(DerivationSpec):
 @dataclass
 class AttributeSpec(DerivationSpec):
     """Simple attribute specification (e.g., hello)."""
+
     attribute: str
 
     def get_derivation_path(self) -> str:
@@ -150,18 +153,14 @@ class AttributeSpec(DerivationSpec):
 
         # First try as flake attribute
         result = run_command(
-            ["nix", "path-info", "--derivation", f".#{self.attribute}"],
-            check=False
+            ["nix", "path-info", "--derivation", f".#{self.attribute}"], check=False
         )
 
         if result.returncode == 0 and result.stdout.strip():
             drv_path = result.stdout.strip()
         else:
             # Try with nix-instantiate and default.nix
-            result = run_command(
-                ["nix-instantiate", ".", "-A", self.attribute],
-                check=False
-            )
+            result = run_command(["nix-instantiate", ".", "-A", self.attribute], check=False)
 
             if result.returncode == 0 and result.stdout.strip():
                 drv_path = result.stdout.strip()
@@ -175,8 +174,12 @@ class AttributeSpec(DerivationSpec):
         """Try flake build first, then nix-build."""
         # Try flake first
         build_cmd = [
-            "nix", "build", f".#{self.attribute}", "--no-link",
-            "--log-format", "bar-with-logs"
+            "nix",
+            "build",
+            f".#{self.attribute}",
+            "--no-link",
+            "--log-format",
+            "bar-with-logs",
         ]
         result = run_command(build_cmd, check=False, capture_output=capture_output)
 
@@ -189,6 +192,7 @@ class AttributeSpec(DerivationSpec):
 @dataclass
 class BenchmarkConfig:
     """Configuration for the benchmark run."""
+
     derivations: list[DerivationSpec]
     runs: int = 10
     warmup: int = 3
@@ -225,36 +229,19 @@ def parse_derivation_spec(spec: str) -> DerivationSpec:
         attr_idx = parts.index("-A") + 1
 
         if file_idx < len(parts) and attr_idx < len(parts):
-            return FileSpec(
-                raw=spec,
-                file_path=parts[file_idx],
-                attribute=parts[attr_idx]
-            )
+            return FileSpec(raw=spec, file_path=parts[file_idx], attribute=parts[attr_idx])
 
     # Check for flake reference (contains #)
-    if '#' in spec:
-        flake_ref, attr = spec.split('#', 1)
-        return FlakeSpec(
-            raw=spec,
-            flake_ref=flake_ref or ".",
-            attribute=attr
-        )
+    if "#" in spec:
+        flake_ref, attr = spec.split("#", 1)
+        return FlakeSpec(raw=spec, flake_ref=flake_ref or ".", attribute=attr)
 
     # Check if it's a file path
-    if spec.startswith(('.', '/')) or spec.endswith('.nix'):
-        return FileSpec(
-            raw=spec,
-            file_path=spec,
-            attribute=None
-        )
+    if spec.startswith((".", "/")) or spec.endswith(".nix"):
+        return FileSpec(raw=spec, file_path=spec, attribute=None)
 
     # Otherwise it's just an attribute name
-    return AttributeSpec(
-        raw=spec,
-        attribute=spec
-    )
-
-
+    return AttributeSpec(raw=spec, attribute=spec)
 
 
 def build_dependencies(drv_path: str, batch_size: int = 100) -> None:
@@ -270,26 +257,21 @@ def build_dependencies(drv_path: str, batch_size: int = 100) -> None:
     print("Step 2: Building dependencies...")
 
     # Get all requisites
-    result = run_command(
-        ["nix-store", "--query", "--requisites", drv_path]
-    )
+    result = run_command(["nix-store", "--query", "--requisites", drv_path])
 
-    requisites = [
-        req for req in result.stdout.strip().split('\n')
-        if req and req != drv_path
-    ]
+    requisites = [req for req in result.stdout.strip().split("\n") if req and req != drv_path]
 
     if requisites:
         print(f"Found {len(requisites)} dependencies to build")
 
         # Build dependencies in batches to avoid command line limits
         for i in range(0, len(requisites), batch_size):
-            batch = requisites[i:i + batch_size]
-            print(f"Building batch {i // batch_size + 1}/{(len(requisites) + batch_size - 1) // batch_size} "
-                  f"({len(batch)} derivations)...")
-            run_command(
-                ["nix-store", "--realize", "--quiet"] + batch
+            batch = requisites[i : i + batch_size]
+            print(
+                f"Building batch {i // batch_size + 1}/{(len(requisites) + batch_size - 1) // batch_size} "
+                f"({len(batch)} derivations)..."
             )
+            run_command(["nix-store", "--realize", "--quiet", *batch])
 
 
 def ensure_built(spec: DerivationSpec) -> None:
@@ -307,9 +289,7 @@ def ensure_built(spec: DerivationSpec) -> None:
         spec.build(capture_output=False)
         print(f"Build complete for {spec.raw}")
     except subprocess.CalledProcessError as e:
-        raise NixError(f"Build failed for {spec.raw} with exit code {e.returncode}")
-
-
+        raise NixError(f"Build failed for {spec.raw} with exit code {e.returncode}") from e
 
 
 def prepare_derivation(spec: DerivationSpec) -> None:
@@ -360,7 +340,7 @@ def run_benchmark(config: BenchmarkConfig) -> None:
         build_cmds.append(build_cmd)
 
     # Run benchmark
-    print(f"\nStep 2: Running benchmark...")
+    print("\nStep 2: Running benchmark...")
     print(f"Runs: {config.runs} (with {config.warmup} warmup runs)")
     print("Commands:")
     for i, cmd in enumerate(build_cmds, 1):
@@ -370,9 +350,12 @@ def run_benchmark(config: BenchmarkConfig) -> None:
     # Build hyperfine command with all build commands
     hyperfine_cmd = [
         "hyperfine",
-        "--runs", str(config.runs),
-        "--warmup", str(config.warmup),
-        "--shell", "bash"
+        "--runs",
+        str(config.runs),
+        "--warmup",
+        str(config.warmup),
+        "--shell",
+        "bash",
     ]
 
     if config.hyperfine_args:
@@ -384,7 +367,7 @@ def run_benchmark(config: BenchmarkConfig) -> None:
     try:
         subprocess.run(hyperfine_cmd, check=True)
     except subprocess.CalledProcessError as e:
-        raise HyperfineError(f"Hyperfine failed with exit code {e.returncode}")
+        raise HyperfineError(f"Hyperfine failed with exit code {e.returncode}") from e
 
     print()
     print("=== Benchmark complete ===")
@@ -413,41 +396,35 @@ def parse_args() -> BenchmarkConfig:
             "  - Traditional nix: '-f file.nix -A attr' (must be quoted as single argument)\n"
             "  - Simple attributes: hello (tries .#hello, then ./default.nix -A hello)"
         ),
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     parser.add_argument(
         "derivations",
         nargs="+",
-        help="Nix derivations to benchmark (e.g., nixpkgs#hello, .#pkg, or just 'hello')"
+        help="Nix derivations to benchmark (e.g., nixpkgs#hello, .#pkg, or just 'hello')",
     )
 
     parser.add_argument(
-        "-n", "--runs",
-        type=int,
-        default=10,
-        help="Number of benchmark runs (default: 10)"
+        "-n", "--runs", type=int, default=10, help="Number of benchmark runs (default: 10)"
     )
 
     parser.add_argument(
-        "-w", "--warmup",
-        type=int,
-        default=3,
-        help="Number of warmup runs (default: 3)"
+        "-w", "--warmup", type=int, default=3, help="Number of warmup runs (default: 3)"
     )
 
     # Capture remaining arguments for hyperfine
     parser.add_argument(
         "hyperfine_args",
         nargs=argparse.REMAINDER,
-        help="Additional arguments to pass to hyperfine (use -- before them)"
+        help="Additional arguments to pass to hyperfine (use -- before them)",
     )
 
     args = parser.parse_args()
 
     # Remove '--' from hyperfine args if present
     hyperfine_args = args.hyperfine_args
-    if hyperfine_args and hyperfine_args[0] == '--':
+    if hyperfine_args and hyperfine_args[0] == "--":
         hyperfine_args = hyperfine_args[1:]
 
     # Parse all derivation specs upfront
@@ -457,7 +434,7 @@ def parse_args() -> BenchmarkConfig:
         derivations=parsed_derivations,
         runs=args.runs,
         warmup=args.warmup,
-        hyperfine_args=hyperfine_args
+        hyperfine_args=hyperfine_args,
     )
 
 

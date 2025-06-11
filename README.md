@@ -78,8 +78,10 @@ nix develop -c pytest
 nix develop -c pytest --cov=nix_hyperfine
 
 # Format code
-nix develop -c black .
-nix develop -c isort .
+nix develop -c ruff format
+
+# Lint code
+nix develop -c ruff check
 
 # Type check
 nix develop -c mypy nix_hyperfine.py

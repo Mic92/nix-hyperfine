@@ -14,8 +14,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from nix_hyperfine import (
     AttributeSpec,
-    BenchmarkConfig,
-    DerivationSpec,
     FileSpec,
     FlakeSpec,
     HyperfineError,
@@ -108,42 +106,42 @@ class TestParseDerivationSpec:
 
 @pytest.mark.skipif(
     subprocess.run(["which", "nix"], capture_output=True).returncode != 0,
-    reason="Nix not available"
+    reason="Nix not available",
 )
 class TestNixIntegration:
     """Integration tests requiring a Nix installation."""
 
     def test_simple_nix_file_derivation(self):
         """Test building a simple derivation from a .nix file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nix', delete=False) as f:
-            f.write('''
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nix", delete=False) as f:
+            f.write("""
             { pkgs ? import <nixpkgs> {} }:
             pkgs.runCommand "test-derivation" {} "echo 'Hello from test' > $out"
-            ''')
+            """)
             nix_file = f.name
 
         try:
             # Test parsing
             spec = FileSpec(raw=f"-f {nix_file}", file_path=nix_file, attribute=None)
-            
+
             # Test getting derivation path
             drv_path = spec.get_derivation_path()
-            assert drv_path.endswith('.drv')
-            assert '/nix/store/' in drv_path
-            
+            assert drv_path.endswith(".drv")
+            assert "/nix/store/" in drv_path
+
             # Test building
             spec.build()
-            
+
             # Verify the build by checking if output exists
             result = run_command(["nix-build", nix_file, "--no-out-link"], check=False)
             assert result.returncode == 0
             output_path = result.stdout.strip()
             assert Path(output_path).exists()
-            
+
             # Read the output
             with open(output_path) as out:
                 assert out.read().strip() == "Hello from test"
-                
+
         finally:
             Path(nix_file).unlink()
 
@@ -151,40 +149,40 @@ class TestNixIntegration:
         """Test building a derivation from a flake."""
         with tempfile.TemporaryDirectory() as tmpdir:
             flake_path = Path(tmpdir) / "flake.nix"
-            flake_path.write_text('''
+            flake_path.write_text("""
             {
               outputs = { self, nixpkgs }: {
-                packages.x86_64-linux.default = 
-                  nixpkgs.legacyPackages.x86_64-linux.runCommand "test-flake" {} 
+                packages.x86_64-linux.default =
+                  nixpkgs.legacyPackages.x86_64-linux.runCommand "test-flake" {}
                     "echo 'Hello from flake' > $out";
               };
             }
-            ''')
-            
+            """)
+
             # Change to the temp directory
             original_cwd = os.getcwd()
             os.chdir(tmpdir)
-            
+
             try:
                 # Test parsing local flake reference
                 spec = FlakeSpec(raw=".#default", flake_ref=".", attribute="default")
-                
+
                 # Test getting derivation path
                 drv_path = spec.get_derivation_path()
-                assert drv_path.endswith('.drv')
-                assert '/nix/store/' in drv_path
-                
+                assert drv_path.endswith(".drv")
+                assert "/nix/store/" in drv_path
+
                 # Test building
                 spec.build()
-                
+
             finally:
                 os.chdir(original_cwd)
 
     def test_build_dependencies_real(self):
         """Test building dependencies with a real derivation."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nix', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nix", delete=False) as f:
             # Create a derivation with a dependency
-            f.write('''
+            f.write("""
             { pkgs ? import <nixpkgs> {} }:
             pkgs.runCommand "test-with-dep" {
               buildInputs = [ pkgs.hello ];
@@ -192,28 +190,25 @@ class TestNixIntegration:
               hello --version > $out
               echo 'Additional content' >> $out
             "
-            ''')
+            """)
             nix_file = f.name
 
         try:
             # Get the derivation path
             result = run_command(["nix-instantiate", nix_file])
             drv_path = result.stdout.strip()
-            
+
             # Build dependencies
             build_dependencies(drv_path)
-            
+
             # The hello dependency should now be built
             # Verify by checking if we can query its outputs
-            result = run_command(
-                ["nix-store", "--query", "--requisites", drv_path],
-                check=False
-            )
+            result = run_command(["nix-store", "--query", "--requisites", drv_path], check=False)
             assert result.returncode == 0
-            requisites = result.stdout.strip().split('\n')
+            requisites = result.stdout.strip().split("\n")
             # Should have multiple requisites including hello
             assert len(requisites) > 1
-            
+
         finally:
             Path(nix_file).unlink()
 
@@ -231,39 +226,32 @@ class TestNixIntegration:
 
     def test_end_to_end_simple(self):
         """Test a simple end-to-end scenario."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nix', delete=False) as f:
-            f.write('''
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nix", delete=False) as f:
+            f.write("""
             { pkgs ? import <nixpkgs> {} }:
             {
               fast = pkgs.runCommand "fast-build" {} "echo fast > $out";
               slow = pkgs.runCommand "slow-build" {} "sleep 0.1; echo slow > $out";
             }
-            ''')
+            """)
             nix_file = f.name
 
         try:
             # Parse specifications
             spec1 = parse_derivation_spec(f"-f {nix_file} -A fast")
             spec2 = parse_derivation_spec(f"-f {nix_file} -A slow")
-            
-            # Create config
-            config = BenchmarkConfig(
-                derivations=[spec1, spec2],
-                runs=2,
-                warmup=1
-            )
-            
+
             # Verify we can get derivation paths
             drv1 = spec1.get_derivation_path()
             drv2 = spec2.get_derivation_path()
             assert drv1 != drv2
-            assert drv1.endswith('.drv')
-            assert drv2.endswith('.drv')
-            
+            assert drv1.endswith(".drv")
+            assert drv2.endswith(".drv")
+
             # Build both
             spec1.build()
             spec2.build()
-            
+
         finally:
             Path(nix_file).unlink()
 

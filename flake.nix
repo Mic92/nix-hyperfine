@@ -22,8 +22,6 @@
           pythonEnv = python.withPackages (ps: with ps; [
             pytest
             pytest-cov
-            black
-            isort
             mypy
           ]);
         in
@@ -57,6 +55,8 @@
                 echo "nix-hyperfine development shell"
                 echo "Run 'pytest' to run tests"
                 echo "Run 'mypy nix_hyperfine.py' to type check"
+                echo "Run 'ruff check' to lint"
+                echo "Run 'ruff format' to format code"
               '';
             };
           };
@@ -79,11 +79,20 @@
             '';
 
             formatting = pkgs.runCommand "nix-hyperfine-format-check" {
-              buildInputs = [ pythonEnv ];
+              buildInputs = [ pkgs.ruff ];
             } ''
               cp ${./nix_hyperfine.py} nix_hyperfine.py
-              ${pythonEnv}/bin/black --check nix_hyperfine.py
-              ${pythonEnv}/bin/isort --check-only nix_hyperfine.py
+              cp -r ${./tests} tests
+              ${pkgs.ruff}/bin/ruff format --check .
+              touch $out
+            '';
+
+            linting = pkgs.runCommand "nix-hyperfine-lint-check" {
+              buildInputs = [ pkgs.ruff ];
+            } ''
+              cp ${./nix_hyperfine.py} nix_hyperfine.py
+              cp -r ${./tests} tests
+              ${pkgs.ruff}/bin/ruff check .
               touch $out
             '';
 
