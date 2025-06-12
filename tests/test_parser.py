@@ -69,31 +69,31 @@ def test_parse_attribute_spec() -> None:
 def test_parse_args_default_build_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that build mode is default."""
     monkeypatch.setattr(sys, "argv", ["nix-hyperfine", "hello"])
-    specs, mode, hyperfine_args = parse_args()
+    args = parse_args()
 
-    assert len(specs) == 1
-    assert isinstance(specs[0], AttributeSpec)
-    assert specs[0].attribute == "hello"
-    assert mode == BenchmarkMode.BUILD
-    assert hyperfine_args == []
+    assert len(args.specs) == 1
+    assert isinstance(args.specs[0], AttributeSpec)
+    assert args.specs[0].attribute == "hello"
+    assert args.mode == BenchmarkMode.BUILD
+    assert args.hyperfine_args == []
 
 
 def test_parse_args_eval_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test --eval flag."""
     monkeypatch.setattr(sys, "argv", ["nix-hyperfine", "--eval", "hello"])
-    specs, mode, hyperfine_args = parse_args()
+    args = parse_args()
 
-    assert len(specs) == 1
-    assert mode == BenchmarkMode.EVAL
+    assert len(args.specs) == 1
+    assert args.mode == BenchmarkMode.EVAL
 
 
 def test_parse_args_build_mode_explicit(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test --build flag."""
     monkeypatch.setattr(sys, "argv", ["nix-hyperfine", "--build", "hello"])
-    specs, mode, hyperfine_args = parse_args()
+    args = parse_args()
 
-    assert len(specs) == 1
-    assert mode == BenchmarkMode.BUILD
+    assert len(args.specs) == 1
+    assert args.mode == BenchmarkMode.BUILD
 
 
 def test_parse_args_with_hyperfine_args(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -103,57 +103,73 @@ def test_parse_args_with_hyperfine_args(monkeypatch: pytest.MonkeyPatch) -> None
         "argv",
         ["nix-hyperfine", "hello", "--", "--runs", "5", "--warmup", "2"],
     )
-    specs, mode, hyperfine_args = parse_args()
+    args = parse_args()
 
-    assert len(specs) == 1
-    assert hyperfine_args == ["--runs", "5", "--warmup", "2"]
+    assert len(args.specs) == 1
+    assert args.hyperfine_args == ["--runs", "5", "--warmup", "2"]
 
 
 def test_parse_args_multiple_derivations(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test multiple derivation specifications."""
     monkeypatch.setattr(sys, "argv", ["nix-hyperfine", "hello", "cowsay", "nixpkgs#lolcat"])
-    specs, mode, hyperfine_args = parse_args()
+    args = parse_args()
 
-    assert len(specs) == 3
-    assert isinstance(specs[0], AttributeSpec)
-    assert isinstance(specs[1], AttributeSpec)
-    assert isinstance(specs[2], FlakeSpec)
+    assert len(args.specs) == 3
+    assert isinstance(args.specs[0], AttributeSpec)
+    assert isinstance(args.specs[1], AttributeSpec)
+    assert isinstance(args.specs[2], FlakeSpec)
 
 
 def test_parse_args_eval_with_hyperfine_args(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test --eval with hyperfine arguments."""
     monkeypatch.setattr(sys, "argv", ["nix-hyperfine", "--eval", "hello", "--", "--runs", "3"])
-    specs, mode, hyperfine_args = parse_args()
+    args = parse_args()
 
-    assert mode == BenchmarkMode.EVAL
-    assert hyperfine_args == ["--runs", "3"]
+    assert args.mode == BenchmarkMode.EVAL
+    assert args.hyperfine_args == ["--runs", "3"]
 
 
 def test_expand_git_revisions_no_revision() -> None:
     """Test expand_git_revisions with no revision."""
     result = expand_git_revisions("hello")
-    assert result == [("hello", None)]
+    assert len(result) == 1
+    assert result[0].base_spec == "hello"
+    assert result[0].revision is None
 
 
 def test_expand_git_revisions_single_revision() -> None:
     """Test expand_git_revisions with single revision."""
     result = expand_git_revisions("hello@HEAD~1")
-    assert result == [("hello", "HEAD~1")]
+    assert len(result) == 1
+    assert result[0].base_spec == "hello"
+    assert result[0].revision == "HEAD~1"
 
 
 def test_expand_git_revisions_multiple_revisions() -> None:
     """Test expand_git_revisions with multiple revisions."""
     result = expand_git_revisions("hello@HEAD~1,HEAD,main")
-    assert result == [("hello", "HEAD~1"), ("hello", "HEAD"), ("hello", "main")]
+    assert len(result) == 3
+    assert result[0].base_spec == "hello"
+    assert result[0].revision == "HEAD~1"
+    assert result[1].base_spec == "hello"
+    assert result[1].revision == "HEAD"
+    assert result[2].base_spec == "hello"
+    assert result[2].revision == "main"
 
 
 def test_expand_git_revisions_with_flake() -> None:
     """Test expand_git_revisions with flake reference."""
     result = expand_git_revisions("nixpkgs#hello@v23.11")
-    assert result == [("nixpkgs#hello", "v23.11")]
+    assert len(result) == 1
+    assert result[0].base_spec == "nixpkgs#hello"
+    assert result[0].revision == "v23.11"
 
 
 def test_expand_git_revisions_with_file_spec() -> None:
     """Test expand_git_revisions with file specification."""
     result = expand_git_revisions("-f default.nix -A hello@HEAD~1,HEAD")
-    assert result == [("-f default.nix -A hello", "HEAD~1"), ("-f default.nix -A hello", "HEAD")]
+    assert len(result) == 2
+    assert result[0].base_spec == "-f default.nix -A hello"
+    assert result[0].revision == "HEAD~1"
+    assert result[1].base_spec == "-f default.nix -A hello"
+    assert result[1].revision == "HEAD"

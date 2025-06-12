@@ -14,31 +14,47 @@ from nix_hyperfine.parser import expand_git_revisions, parse_args
 def test_expand_git_revisions_no_revision() -> None:
     """Test expand_git_revisions with no revision."""
     result = expand_git_revisions("hello")
-    assert result == [("hello", None)]
+    assert len(result) == 1
+    assert result[0].base_spec == "hello"
+    assert result[0].revision is None
 
 
 def test_expand_git_revisions_single_revision() -> None:
     """Test expand_git_revisions with single revision."""
     result = expand_git_revisions("hello@HEAD~1")
-    assert result == [("hello", "HEAD~1")]
+    assert len(result) == 1
+    assert result[0].base_spec == "hello"
+    assert result[0].revision == "HEAD~1"
 
 
 def test_expand_git_revisions_multiple_revisions() -> None:
     """Test expand_git_revisions with multiple revisions."""
     result = expand_git_revisions("hello@HEAD~1,HEAD,main")
-    assert result == [("hello", "HEAD~1"), ("hello", "HEAD"), ("hello", "main")]
+    assert len(result) == 3
+    assert result[0].base_spec == "hello"
+    assert result[0].revision == "HEAD~1"
+    assert result[1].base_spec == "hello"
+    assert result[1].revision == "HEAD"
+    assert result[2].base_spec == "hello"
+    assert result[2].revision == "main"
 
 
 def test_expand_git_revisions_with_flake() -> None:
     """Test expand_git_revisions with flake reference."""
     result = expand_git_revisions("nixpkgs#hello@v23.11")
-    assert result == [("nixpkgs#hello", "v23.11")]
+    assert len(result) == 1
+    assert result[0].base_spec == "nixpkgs#hello"
+    assert result[0].revision == "v23.11"
 
 
 def test_expand_git_revisions_with_file_spec() -> None:
     """Test expand_git_revisions with file specification."""
     result = expand_git_revisions("-f default.nix -A hello@HEAD~1,HEAD")
-    assert result == [("-f default.nix -A hello", "HEAD~1"), ("-f default.nix -A hello", "HEAD")]
+    assert len(result) == 2
+    assert result[0].base_spec == "-f default.nix -A hello"
+    assert result[0].revision == "HEAD~1"
+    assert result[1].base_spec == "-f default.nix -A hello"
+    assert result[1].revision == "HEAD"
 
 
 def test_git_revision_integration(
@@ -87,15 +103,15 @@ def test_git_revision_integration(
     original_argv = sys.argv
     try:
         sys.argv = ["nix-hyperfine", "--eval", ".#test@HEAD~1,HEAD", "--", "--runs", "1"]
-        specs, mode, hyperfine_args = parse_args()
+        args = parse_args()
 
-        assert len(specs) == 2
-        assert mode == BenchmarkMode.EVAL
-        assert hyperfine_args == ["--runs", "1"]
+        assert len(args.specs) == 2
+        assert args.mode == BenchmarkMode.EVAL
+        assert args.hyperfine_args == ["--runs", "1"]
 
         # The raw field should preserve the original spec with revision
-        assert specs[0].raw == ".#test@HEAD~1"
-        assert specs[1].raw == ".#test@HEAD"
+        assert args.specs[0].raw == ".#test@HEAD~1"
+        assert args.specs[1].raw == ".#test@HEAD"
 
     finally:
         sys.argv = original_argv
