@@ -8,10 +8,6 @@ from pathlib import Path
 import pytest
 
 
-@pytest.mark.skipif(
-    shutil.which("nix") is None or shutil.which("hyperfine") is None,
-    reason="Nix or hyperfine not available",
-)
 def test_command_line_invocation(tmp_path: Path) -> None:
     """Test invoking nix-hyperfine via command line."""
     nix_file = tmp_path / "test.nix"
@@ -35,10 +31,6 @@ def test_command_line_invocation(tmp_path: Path) -> None:
     assert "Benchmark" in result.stdout or "hyperfine" in result.stdout.lower()
 
 
-@pytest.mark.skipif(
-    shutil.which("nix") is None or shutil.which("hyperfine") is None,
-    reason="Nix or hyperfine not available",
-)
 def test_cli_eval_mode(tmp_path: Path) -> None:
     """Test CLI with --eval flag."""
     nix_file = tmp_path / "test.nix"

@@ -11,10 +11,6 @@ from nix_hyperfine.parser import parse_derivation_spec
 from nix_hyperfine.specs import AttributeSpec, FileSpec, FlakeSpec
 
 
-@pytest.mark.skipif(
-    shutil.which("nix") is None,
-    reason="Nix not available",
-)
 def test_file_spec_simple_derivation(tmp_path: Path) -> None:
     """Test FileSpec with a simple .nix file."""
     nix_file = tmp_path / "test.nix"
@@ -40,10 +36,6 @@ def test_file_spec_simple_derivation(tmp_path: Path) -> None:
     # In sandbox environment, building is sufficient test
 
 
-@pytest.mark.skipif(
-    shutil.which("nix") is None,
-    reason="Nix not available",
-)
 def test_file_spec_with_attribute(tmp_path: Path) -> None:
     """Test FileSpec with attribute selection."""
     nix_file = tmp_path / "test.nix"
@@ -77,20 +69,21 @@ def test_file_spec_with_attribute(tmp_path: Path) -> None:
     assert "fast-build" in drv_path
 
 
-@pytest.mark.skipif(
-    shutil.which("nix") is None,
-    reason="Nix not available",
-)
-@pytest.mark.skip(reason="Flakes require network access in sandbox")
 def test_flake_spec_local_flake(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test FlakeSpec with a local flake."""
     flake_path = tmp_path / "flake.nix"
     flake_path.write_text("""
     {
-      outputs = { self, nixpkgs }: {
-        packages.x86_64-linux.default =
-          nixpkgs.legacyPackages.x86_64-linux.runCommand "test-flake" {}
-            "echo 'Hello from flake' > $out";
+      outputs = { self }: 
+      let
+        system = "x86_64-linux";
+      in {
+        packages.${system}.default = derivation {
+          name = "test-flake";
+          inherit system;
+          builder = "/bin/sh";
+          args = [ "-c" "echo 'Hello from flake' > $out" ];
+        };
       };
     }
     """)
@@ -110,10 +103,6 @@ def test_flake_spec_local_flake(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     spec.build()
 
 
-@pytest.mark.skipif(
-    shutil.which("nix") is None,
-    reason="Nix not available",
-)
 def test_attribute_spec_with_nix_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test AttributeSpec with a nix file that has attributes."""
     nix_file = tmp_path / "default.nix"

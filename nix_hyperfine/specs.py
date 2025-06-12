@@ -45,7 +45,7 @@ class FlakeSpec(DerivationSpec):
 
     def build(self, capture_output: bool = False) -> None:
         """Build using nix build with flake reference."""
-        cmd = ["nix", "build", f"{self.flake_ref}#{self.attribute}", "--rebuild"]
+        cmd = ["nix", "build", f"{self.flake_ref}#{self.attribute}"]
         run_command(cmd, capture_output=capture_output)
 
 

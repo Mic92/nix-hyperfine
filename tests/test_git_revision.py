@@ -41,11 +41,6 @@ def test_expand_git_revisions_with_file_spec() -> None:
     assert result == [("-f default.nix -A hello", "HEAD~1"), ("-f default.nix -A hello", "HEAD")]
 
 
-@pytest.mark.skipif(
-    subprocess.run(["git", "--version"], capture_output=True).returncode != 0,
-    reason="Git not available",
-)
-@pytest.mark.skip(reason="Git operations require network access in sandbox")
 def test_git_revision_integration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test git revision expansion with real git repo."""
     # Create a simple git repo
@@ -58,13 +53,19 @@ def test_git_revision_integration(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     subprocess.run(["git", "config", "user.email", "test@example.com"], check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], check=True)
 
-    # Create initial flake
+    # Create initial flake with raw derivation
     flake_content = """
     {
-      outputs = { self, nixpkgs }: {
-        packages.x86_64-linux.test =
-          nixpkgs.legacyPackages.x86_64-linux.runCommand "test-v1" {}
-            "echo 'version 1' > $out";
+      outputs = { self }: 
+      let
+        system = "x86_64-linux";
+      in {
+        packages.${system}.test = derivation {
+          name = "test-v1";
+          inherit system;
+          builder = "/bin/sh";
+          args = [ "-c" "echo 'version 1' > $out" ];
+        };
       };
     }
     """
