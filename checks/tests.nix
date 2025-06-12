@@ -3,6 +3,8 @@
   python3,
   nix,
   hyperfine,
+  git,
+  nixpkgs,
 }:
 
 nix-hyperfine.overridePythonAttrs (old: {
@@ -14,6 +16,7 @@ nix-hyperfine.overridePythonAttrs (old: {
     nix
     hyperfine
     python3.pkgs.pytestCheckHook
+    git
   ];
 
   # Run tests with pytest
@@ -22,6 +25,16 @@ nix-hyperfine.overridePythonAttrs (old: {
 
     # Set up test environment
     export HOME=$TMPDIR
+    export NIX_PATH=nixpkgs=${nixpkgs}
+
+    # Set up git for tests
+    git config --global user.name "Test User"
+    git config --global user.email "test@example.com"
+    git config --global init.defaultBranch main
+
+    # Ensure nix can access experimental features for flakes
+    mkdir -p $HOME/.config/nix
+    echo "experimental-features = nix-command flakes" > $HOME/.config/nix/nix.conf
 
     # Run pytest
     pytest tests -v
