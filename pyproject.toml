@@ -31,8 +31,8 @@ Homepage = "https://github.com/yourusername/nix-hyperfine"
 Repository = "https://github.com/yourusername/nix-hyperfine"
 Issues = "https://github.com/yourusername/nix-hyperfine/issues"
 
-[tool.setuptools.py-modules]
-nix_hyperfine = "nix_hyperfine"
+[tool.setuptools]
+py-modules = ["nix_hyperfine"]
 
 [tool.ruff]
 target-version = "py312"
