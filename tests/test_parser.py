@@ -99,7 +99,9 @@ def test_parse_args_build_mode_explicit(monkeypatch: pytest.MonkeyPatch) -> None
 def test_parse_args_with_hyperfine_args(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test passing arguments to hyperfine."""
     monkeypatch.setattr(
-        sys, "argv", ["nix-hyperfine", "hello", "--", "--runs", "5", "--warmup", "2"]
+        sys,
+        "argv",
+        ["nix-hyperfine", "hello", "--", "--runs", "5", "--warmup", "2"],
     )
     specs, mode, hyperfine_args = parse_args()
 

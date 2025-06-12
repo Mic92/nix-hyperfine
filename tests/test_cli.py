@@ -22,6 +22,7 @@ def test_command_line_invocation(tmp_path: Path) -> None:
         ["python", "-m", "nix_hyperfine", f"-f {nix_file}", "--", "--runs", "1"],
         capture_output=True,
         text=True,
+        check=False,
     )
 
     assert result.returncode == 0
@@ -45,6 +46,7 @@ def test_cli_eval_mode(tmp_path: Path) -> None:
         ["python", "-m", "nix_hyperfine", "--eval", f"-f {nix_file}", "--", "--runs", "1"],
         capture_output=True,
         text=True,
+        check=False,
     )
 
     assert result.returncode == 0
@@ -57,6 +59,7 @@ def test_cli_help() -> None:
         ["python", "-m", "nix_hyperfine", "--help"],
         capture_output=True,
         text=True,
+        check=False,
     )
 
     assert result.returncode == 0

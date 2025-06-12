@@ -6,14 +6,14 @@ from .exceptions import NixError
 
 
 def add_experimental_flags(cmd: list[str]) -> list[str]:
-    """
-    Add experimental flags to nix commands that need them.
+    """Add experimental flags to nix commands that need them.
 
     Args:
         cmd: Command list to potentially modify
 
     Returns:
         Modified command list with experimental flags if needed
+
     """
     if not cmd:
         return cmd
@@ -27,10 +27,11 @@ def add_experimental_flags(cmd: list[str]) -> list[str]:
 
 
 def run_command(
-    cmd: list[str], capture_output: bool = True, check: bool = True
+    cmd: list[str],
+    capture_output: bool = True,
+    check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
-    """
-    Run a command with proper error handling.
+    """Run a command with proper error handling.
 
     Args:
         cmd: Command and arguments to run
@@ -42,18 +43,18 @@ def run_command(
 
     Raises:
         NixError: If command fails and check=True
+
     """
     # Add experimental flags if needed
     cmd = add_experimental_flags(cmd)
 
     try:
-        result = subprocess.run(
+        return subprocess.run(
             cmd,
             capture_output=capture_output,
             text=True,
             check=check,
         )
-        return result
     except subprocess.CalledProcessError as e:
         error_msg = f"Command failed: {' '.join(cmd)}"
         if e.stderr:

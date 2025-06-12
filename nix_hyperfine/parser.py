@@ -11,14 +11,14 @@ from .specs import AttributeSpec, DerivationSpec, FileSpec, FlakeSpec
 
 
 def expand_git_revisions(spec: str) -> list[tuple[str, str | None]]:
-    """
-    Expand a spec with git revisions into multiple specs.
+    """Expand a spec with git revisions into multiple specs.
 
     Args:
         spec: The specification string possibly containing @revision
 
     Returns:
         List of (spec_without_revision, revision) tuples
+
     """
     # Check if spec contains @revision
     if "@" not in spec:
@@ -37,13 +37,12 @@ def expand_git_revisions(spec: str) -> list[tuple[str, str | None]]:
 
 
 def create_git_revision_spec(base_spec: str, revision: str) -> str:
-    """
-    Create a spec that uses a git revision.
+    """Create a spec that uses a git revision.
 
     This modifies the base spec to use a fetchGit store path.
     """
     # First resolve the revision to a commit hash
-    git_dir = Path(".").resolve()
+    git_dir = Path.cwd()
     try:
         # Get the full commit hash for the revision
         rev_parse_cmd = ["git", "-C", str(git_dir), "rev-parse", revision]
@@ -71,8 +70,9 @@ def create_git_revision_spec(base_spec: str, revision: str) -> str:
         result = run_command(cmd, capture_output=True, check=True)
         store_path = result.stdout.strip()
     except NixError as e:
+        msg = f"Failed to fetch git revision '{revision}' (commit {commit_hash}): {e}"
         raise NixError(
-            f"Failed to fetch git revision '{revision}' (commit {commit_hash}): {e}"
+            msg,
         ) from e
 
     # Modify the base spec to use the store path
@@ -80,7 +80,7 @@ def create_git_revision_spec(base_spec: str, revision: str) -> str:
         # Flake reference - use store path as flake ref
         attribute = base_spec.split("#", 1)[1]
         return f"{store_path}#{attribute}"
-    elif base_spec.startswith("-f "):
+    if base_spec.startswith("-f "):
         # File spec - update the file path
         parts = base_spec[3:].split(" -A ", 1)
         file_path = parts[0].strip()
@@ -89,23 +89,22 @@ def create_git_revision_spec(base_spec: str, revision: str) -> str:
         if attribute:
             new_spec += f" -A {attribute}"
         return new_spec
-    elif base_spec.endswith(".nix") or "/" in base_spec:
+    if base_spec.endswith(".nix") or "/" in base_spec:
         # Direct file path
         return f"{store_path}/{base_spec}"
-    else:
-        # Simple attribute - assume default.nix
-        return f"-f {store_path}/default.nix -A {base_spec}"
+    # Simple attribute - assume default.nix
+    return f"-f {store_path}/default.nix -A {base_spec}"
 
 
 def parse_derivation_spec(spec: str) -> DerivationSpec:
-    """
-    Parse a derivation specification string into a typed spec.
+    """Parse a derivation specification string into a typed spec.
 
     Args:
         spec: The specification string (e.g., "nixpkgs#hello", "-f file.nix -A attr", "hello")
 
     Returns:
         A parsed DerivationSpec subclass instance
+
     """
     # Check for flake reference (contains # but not a leading -)
     if "#" in spec and not spec.startswith("-"):
@@ -130,11 +129,11 @@ def parse_derivation_spec(spec: str) -> DerivationSpec:
 
 
 def parse_args() -> tuple[list[DerivationSpec], BenchmarkMode, list[str]]:
-    """
-    Parse command-line arguments.
+    """Parse command-line arguments.
 
     Returns:
         Tuple of (derivation specs, benchmark mode, hyperfine args)
+
     """
     import sys
 

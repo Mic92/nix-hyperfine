@@ -45,6 +45,18 @@ ignore = [
     "T201",  # print found - we use print for user output
     "D203",  # 1 blank line required before class docstring (conflicts with D211)
     "D213",  # Multi-line docstring summary should start at the second line (conflicts with D212)
+    "S101",  # assert statements in tests are fine
+    "S603",  # subprocess calls are necessary for nix commands
+    "FBT001", "FBT002",  # boolean arguments are reasonable in our context
+    "EXE001",  # shebang without executable permission is fine for test files
+    "TD002", "TD003",  # TODO requirements
+    "FIX002",  # TODO requirements
+    "PLR0913",  # too many arguments
+    "C901",  # too complex
+    "PLR0912",  # too many branches
+    "PLR2004",  # magic value used in comparison
+    "S607",  # subprocess with partial executable path
+    "D101",  # missing docstring in public class
 ]
 
 [tool.ruff.format]

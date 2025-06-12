@@ -9,6 +9,8 @@ from .specs import AttributeSpec, DerivationSpec, FileSpec, FlakeSpec
 
 
 class BenchmarkMode(Enum):
+    """Enumeration of benchmark modes."""
+
     BUILD = auto()
     EVAL = auto()
 
@@ -25,40 +27,44 @@ class BenchmarkConfig:
 def _get_eval_command(spec: DerivationSpec) -> str:
     """Get the nix evaluation command for a spec."""
     if isinstance(spec, FlakeSpec):
-        return f"nix --extra-experimental-features 'nix-command flakes' eval --raw {spec.flake_ref}#{spec.attribute}.drvPath"
-    elif isinstance(spec, FileSpec):
+        return (
+            f"nix --extra-experimental-features 'nix-command flakes' eval --raw "
+            f"{spec.flake_ref}#{spec.attribute}.drvPath"
+        )
+    if isinstance(spec, FileSpec):
         if spec.attribute:
             return f"nix-instantiate {spec.file_path} -A {spec.attribute}"
-        else:
-            return f"nix-instantiate {spec.file_path}"
-    elif isinstance(spec, AttributeSpec):
+        return f"nix-instantiate {spec.file_path}"
+    if isinstance(spec, AttributeSpec):
         return f"nix-instantiate -A {spec.attribute}"
-    else:
-        raise ValueError(f"Unknown spec type: {type(spec)}")
+    msg = f"Unknown spec type: {type(spec)}"
+    raise ValueError(msg)
 
 
 def _get_build_command(spec: DerivationSpec) -> str:
     """Get the nix build command for a spec."""
     if isinstance(spec, FlakeSpec):
-        return f"nix --extra-experimental-features 'nix-command flakes' build {spec.flake_ref}#{spec.attribute} --rebuild"
-    elif isinstance(spec, FileSpec):
+        return (
+            f"nix --extra-experimental-features 'nix-command flakes' build "
+            f"{spec.flake_ref}#{spec.attribute} --rebuild"
+        )
+    if isinstance(spec, FileSpec):
         if spec.attribute:
             return f"nix-build {spec.file_path} -A {spec.attribute}"
-        else:
-            return f"nix-build {spec.file_path}"
-    elif isinstance(spec, AttributeSpec):
+        return f"nix-build {spec.file_path}"
+    if isinstance(spec, AttributeSpec):
         return f"nix-build -A {spec.attribute}"
-    else:
-        raise ValueError(f"Unknown spec type: {type(spec)}")
+    msg = f"Unknown spec type: {type(spec)}"
+    raise ValueError(msg)
 
 
 def benchmark_eval(specs: list[DerivationSpec], hyperfine_args: list[str]) -> None:
-    """
-    Benchmark evaluation of derivations.
+    """Benchmark evaluation of derivations.
 
     Args:
         specs: List of derivation specifications
         hyperfine_args: Additional arguments to pass to hyperfine
+
     """
     # Pre-build all derivations to ensure dependencies exist
     # This is faster than building dependencies separately
@@ -68,20 +74,22 @@ def benchmark_eval(specs: list[DerivationSpec], hyperfine_args: list[str]) -> No
     hyperfine_cmd = ["hyperfine", *hyperfine_args]
 
     for spec in specs:
-        hyperfine_cmd.extend(["-n", spec.raw])
+        # Escape benchmark name to avoid hyperfine interpreting flags
+        name = spec.raw.replace("-", "\\-")
+        hyperfine_cmd.extend(["-n", name])
         hyperfine_cmd.append(_get_eval_command(spec))
 
     print(f"Running: {' '.join(hyperfine_cmd)}")
-    subprocess.run(hyperfine_cmd)
+    subprocess.run(hyperfine_cmd, check=False)
 
 
 def benchmark_build(specs: list[DerivationSpec], hyperfine_args: list[str]) -> None:
-    """
-    Benchmark building of derivations.
+    """Benchmark building of derivations.
 
     Args:
         specs: List of derivation specifications
         hyperfine_args: Additional arguments to pass to hyperfine
+
     """
     # Pre-build all derivations
     # This ensures all dependencies are available and is faster than
@@ -92,8 +100,10 @@ def benchmark_build(specs: list[DerivationSpec], hyperfine_args: list[str]) -> N
     hyperfine_cmd = ["hyperfine", *hyperfine_args]
 
     for spec in specs:
-        hyperfine_cmd.extend(["-n", spec.raw])
+        # Escape benchmark name to avoid hyperfine interpreting flags
+        name = spec.raw.replace("-", "\\-")
+        hyperfine_cmd.extend(["-n", name])
         hyperfine_cmd.append(_get_build_command(spec))
 
     print(f"Running: {' '.join(hyperfine_cmd)}")
-    subprocess.run(hyperfine_cmd)
+    subprocess.run(hyperfine_cmd, check=False)

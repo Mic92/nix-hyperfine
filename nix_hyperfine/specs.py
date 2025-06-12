@@ -22,12 +22,10 @@ class DerivationSpec(ABC):
     @abstractmethod
     def get_derivation_path(self) -> str:
         """Get the derivation path (.drv file)."""
-        pass
 
     @abstractmethod
     def build(self, capture_output: bool = False) -> None:
         """Build the derivation."""
-        pass
 
 
 @dataclass
