@@ -4,6 +4,7 @@ import subprocess
 from enum import Enum, auto
 
 from .dependencies import ensure_built
+from .exceptions import HyperfineError
 from .specs import AttributeSpec, DerivationSpec, FileSpec, FlakeSpec
 
 
@@ -74,7 +75,11 @@ def benchmark_eval(specs: list[DerivationSpec], hyperfine_args: list[str]) -> No
         hyperfine_cmd.append(_get_eval_command(spec))
 
     print(f"Running: {' '.join(hyperfine_cmd)}")
-    subprocess.run(hyperfine_cmd, check=True)
+    try:
+        subprocess.run(hyperfine_cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        msg = f"Hyperfine failed with exit code {e.returncode}"
+        raise HyperfineError(msg, returncode=e.returncode) from e
 
 
 def benchmark_build(specs: list[DerivationSpec], hyperfine_args: list[str]) -> None:
