@@ -28,7 +28,7 @@ def _get_eval_command(spec: DerivationSpec) -> str:
     """Get the nix evaluation command for a spec."""
     if isinstance(spec, FlakeSpec):
         return (
-            f"nix --extra-experimental-features 'nix-command flakes' eval --raw "
+            f"nix --extra-experimental-features 'nix-command flakes' eval --raw --no-eval-cache "
             f"{spec.flake_ref}#{spec.attribute}.drvPath"
         )
     if isinstance(spec, FileSpec):
