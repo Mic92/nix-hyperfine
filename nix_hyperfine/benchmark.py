@@ -74,13 +74,13 @@ def benchmark_eval(specs: list[DerivationSpec], hyperfine_args: list[str]) -> No
     hyperfine_cmd = ["hyperfine", *hyperfine_args]
 
     for spec in specs:
-        # Escape benchmark name to avoid hyperfine interpreting flags
-        name = spec.raw.replace("-", "\\-")
+        # Add space before dash to prevent hyperfine from interpreting as flag
+        name = f" {spec.raw}" if spec.raw.startswith("-") else spec.raw
         hyperfine_cmd.extend(["-n", name])
         hyperfine_cmd.append(_get_eval_command(spec))
 
     print(f"Running: {' '.join(hyperfine_cmd)}")
-    subprocess.run(hyperfine_cmd, check=False)
+    subprocess.run(hyperfine_cmd, check=True)
 
 
 def benchmark_build(specs: list[DerivationSpec], hyperfine_args: list[str]) -> None:
@@ -100,10 +100,10 @@ def benchmark_build(specs: list[DerivationSpec], hyperfine_args: list[str]) -> N
     hyperfine_cmd = ["hyperfine", *hyperfine_args]
 
     for spec in specs:
-        # Escape benchmark name to avoid hyperfine interpreting flags
-        name = spec.raw.replace("-", "\\-")
+        # Add space before dash to prevent hyperfine from interpreting as flag
+        name = f" {spec.raw}" if spec.raw.startswith("-") else spec.raw
         hyperfine_cmd.extend(["-n", name])
         hyperfine_cmd.append(_get_build_command(spec))
 
     print(f"Running: {' '.join(hyperfine_cmd)}")
-    subprocess.run(hyperfine_cmd, check=False)
+    subprocess.run(hyperfine_cmd, check=True)
