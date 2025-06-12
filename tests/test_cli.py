@@ -16,8 +16,12 @@ def test_command_line_invocation(tmp_path: Path) -> None:
     """Test invoking nix-hyperfine via command line."""
     nix_file = tmp_path / "test.nix"
     nix_file.write_text("""
-    { pkgs ? import <nixpkgs> {} }:
-    pkgs.runCommand "test-cli" {} "echo 'cli test' > $out"
+    derivation {
+      name = "test-cli";
+      system = builtins.currentSystem;
+      builder = "/bin/sh";
+      args = [ "-c" "echo 'cli test' > $out" ];
+    }
     """)
 
     # Test basic invocation
@@ -39,8 +43,12 @@ def test_cli_eval_mode(tmp_path: Path) -> None:
     """Test CLI with --eval flag."""
     nix_file = tmp_path / "test.nix"
     nix_file.write_text("""
-    { pkgs ? import <nixpkgs> {} }:
-    pkgs.runCommand "test-eval-cli" {} "echo 'eval cli test' > $out"
+    derivation {
+      name = "test-eval-cli";
+      system = builtins.currentSystem;
+      builder = "/bin/sh";
+      args = [ "-c" "echo 'eval cli test' > $out" ];
+    }
     """)
 
     # Test eval mode invocation

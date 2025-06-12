@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 
 from .benchmark import BenchmarkMode
+from .command import run_command
 from .exceptions import NixError
 from .specs import AttributeSpec, DerivationSpec, FileSpec, FlakeSpec
 
@@ -67,13 +68,10 @@ def create_git_revision_spec(base_spec: str, revision: str) -> str:
     # Evaluate to get store path
     cmd = ["nix", "eval", "--impure", "--raw", "--expr", fetch_expr]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        result = run_command(cmd, capture_output=True, check=True)
         store_path = result.stdout.strip()
-    except subprocess.CalledProcessError as e:
-        error_msg = f"Failed to fetch git revision '{revision}' (commit {commit_hash})"
-        if e.stderr:
-            error_msg += f": {e.stderr.strip()}"
-        raise NixError(error_msg) from e
+    except NixError as e:
+        raise NixError(f"Failed to fetch git revision '{revision}' (commit {commit_hash}): {e}") from e
 
     # Modify the base spec to use the store path
     if "#" in base_spec and not base_spec.startswith("-"):
