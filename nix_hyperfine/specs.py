@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from pathlib import Path
 
 from .command import run_command
 
@@ -17,7 +18,7 @@ class DerivationSpec(ABC):
         """Get the derivation path (.drv file)."""
 
     @abstractmethod
-    def build(self, capture_output: bool = False) -> None:
+    def build(self, capture_output: bool = False, out_link: Path | None = None) -> None:
         """Build the derivation."""
 
 
@@ -34,9 +35,14 @@ class FlakeSpec(DerivationSpec):
         result = run_command(cmd)
         return result.stdout.strip()
 
-    def build(self, capture_output: bool = False) -> None:
+    def build(self, capture_output: bool = False, out_link: Path | None = None) -> None:
         """Build using nix build with flake reference."""
-        cmd = ["nix", "build", f"{self.flake_ref}#{self.attribute}"]
+        cmd = ["nix", "build"]
+        if out_link:
+            cmd.extend(["--out-link", str(out_link)])
+        else:
+            cmd.append("--no-link")
+        cmd.append(f"{self.flake_ref}#{self.attribute}")
         run_command(cmd, capture_output=capture_output)
 
 
@@ -55,9 +61,14 @@ class FileSpec(DerivationSpec):
         result = run_command(cmd)
         return result.stdout.strip()
 
-    def build(self, capture_output: bool = False) -> None:
+    def build(self, capture_output: bool = False, out_link: Path | None = None) -> None:
         """Build using nix-build with file and optional attribute."""
-        cmd = ["nix-build", self.file_path]
+        cmd = ["nix-build"]
+        if out_link:
+            cmd.extend(["-o", str(out_link)])
+        else:
+            cmd.append("--no-out-link")
+        cmd.append(self.file_path)
         if self.attribute:
             cmd.extend(["-A", self.attribute])
         run_command(cmd, capture_output=capture_output)
@@ -75,7 +86,12 @@ class AttributeSpec(DerivationSpec):
         result = run_command(cmd)
         return result.stdout.strip()
 
-    def build(self, capture_output: bool = False) -> None:
+    def build(self, capture_output: bool = False, out_link: Path | None = None) -> None:
         """Build using nix-build with attribute."""
-        cmd = ["nix-build", "-A", self.attribute]
+        cmd = ["nix-build"]
+        if out_link:
+            cmd.extend(["-o", str(out_link)])
+        else:
+            cmd.append("--no-out-link")
+        cmd.extend(["-A", self.attribute])
         run_command(cmd, capture_output=capture_output)
