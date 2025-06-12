@@ -25,7 +25,7 @@ class BenchmarkConfig:
 def _get_eval_command(spec: DerivationSpec) -> str:
     """Get the nix evaluation command for a spec."""
     if isinstance(spec, FlakeSpec):
-        return f"nix eval --raw {spec.flake_ref}#{spec.attribute}.drvPath"
+        return f"nix --extra-experimental-features 'nix-command flakes' eval --raw {spec.flake_ref}#{spec.attribute}.drvPath"
     elif isinstance(spec, FileSpec):
         if spec.attribute:
             return f"nix-instantiate {spec.file_path} -A {spec.attribute}"
@@ -40,7 +40,7 @@ def _get_eval_command(spec: DerivationSpec) -> str:
 def _get_build_command(spec: DerivationSpec) -> str:
     """Get the nix build command for a spec."""
     if isinstance(spec, FlakeSpec):
-        return f"nix build {spec.flake_ref}#{spec.attribute} --rebuild"
+        return f"nix --extra-experimental-features 'nix-command flakes' build {spec.flake_ref}#{spec.attribute} --rebuild"
     elif isinstance(spec, FileSpec):
         if spec.attribute:
             return f"nix-build {spec.file_path} -A {spec.attribute}"
