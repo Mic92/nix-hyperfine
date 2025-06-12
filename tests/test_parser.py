@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 """Tests for the parser module."""
 
-import sys
-
-import pytest
-
 from nix_hyperfine.benchmark import BenchmarkMode
 from nix_hyperfine.parser import expand_git_revisions, parse_args, parse_derivation_spec
 from nix_hyperfine.specs import AttributeSpec, FileSpec, FlakeSpec
@@ -66,10 +62,10 @@ def test_parse_attribute_spec() -> None:
     assert spec.raw == "hello"
 
 
-def test_parse_args_default_build_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_parse_args_default_build_mode() -> None:
     """Test that build mode is default."""
-    monkeypatch.setattr(sys, "argv", ["nix-hyperfine", "hello"])
-    args = parse_args()
+    argv = ["nix-hyperfine", "hello"]
+    args = parse_args(argv)
 
     assert len(args.specs) == 1
     assert isinstance(args.specs[0], AttributeSpec)
@@ -78,41 +74,37 @@ def test_parse_args_default_build_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     assert args.hyperfine_args == []
 
 
-def test_parse_args_eval_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_parse_args_eval_mode() -> None:
     """Test --eval flag."""
-    monkeypatch.setattr(sys, "argv", ["nix-hyperfine", "--eval", "hello"])
-    args = parse_args()
+    argv = ["nix-hyperfine", "--eval", "hello"]
+    args = parse_args(argv)
 
     assert len(args.specs) == 1
     assert args.mode == BenchmarkMode.EVAL
 
 
-def test_parse_args_build_mode_explicit(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_parse_args_build_mode_explicit() -> None:
     """Test --build flag."""
-    monkeypatch.setattr(sys, "argv", ["nix-hyperfine", "--build", "hello"])
-    args = parse_args()
+    argv = ["nix-hyperfine", "--build", "hello"]
+    args = parse_args(argv)
 
     assert len(args.specs) == 1
     assert args.mode == BenchmarkMode.BUILD
 
 
-def test_parse_args_with_hyperfine_args(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_parse_args_with_hyperfine_args() -> None:
     """Test passing arguments to hyperfine."""
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        ["nix-hyperfine", "hello", "--", "--runs", "5", "--warmup", "2"],
-    )
-    args = parse_args()
+    argv = ["nix-hyperfine", "hello", "--", "--runs", "5", "--warmup", "2"]
+    args = parse_args(argv)
 
     assert len(args.specs) == 1
     assert args.hyperfine_args == ["--runs", "5", "--warmup", "2"]
 
 
-def test_parse_args_multiple_derivations(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_parse_args_multiple_derivations() -> None:
     """Test multiple derivation specifications."""
-    monkeypatch.setattr(sys, "argv", ["nix-hyperfine", "hello", "cowsay", "nixpkgs#lolcat"])
-    args = parse_args()
+    argv = ["nix-hyperfine", "hello", "cowsay", "nixpkgs#lolcat"]
+    args = parse_args(argv)
 
     assert len(args.specs) == 3
     assert isinstance(args.specs[0], AttributeSpec)
@@ -120,10 +112,10 @@ def test_parse_args_multiple_derivations(monkeypatch: pytest.MonkeyPatch) -> Non
     assert isinstance(args.specs[2], FlakeSpec)
 
 
-def test_parse_args_eval_with_hyperfine_args(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_parse_args_eval_with_hyperfine_args() -> None:
     """Test --eval with hyperfine arguments."""
-    monkeypatch.setattr(sys, "argv", ["nix-hyperfine", "--eval", "hello", "--", "--runs", "3"])
-    args = parse_args()
+    argv = ["nix-hyperfine", "--eval", "hello", "--", "--runs", "3"]
+    args = parse_args(argv)
 
     assert args.mode == BenchmarkMode.EVAL
     assert args.hyperfine_args == ["--runs", "3"]

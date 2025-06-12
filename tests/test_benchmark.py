@@ -2,7 +2,6 @@
 """Tests for benchmarking functionality."""
 
 import subprocess
-import sys
 from collections.abc import Callable
 from pathlib import Path
 
@@ -227,29 +226,24 @@ def test_git_revision_with_build_failures(
     subprocess.run(["git", "commit", "-m", "Fixed version"], check=True)
 
     # Test parsing with git revisions - success, fail, success
-    original_argv = sys.argv
-    try:
-        sys.argv = ["nix-hyperfine", "test@HEAD~2,HEAD~1,HEAD", "--", "--runs", "1"]
-        args = parse_args()
+    argv = ["nix-hyperfine", "test@HEAD~2,HEAD~1,HEAD", "--", "--runs", "1"]
+    args = parse_args(argv)
 
-        assert len(args.specs) == 3
-        assert args.mode == BenchmarkMode.BUILD
-        assert args.hyperfine_args == ["--runs", "1"]
+    assert len(args.specs) == 3
+    assert args.mode == BenchmarkMode.BUILD
+    assert args.hyperfine_args == ["--runs", "1"]
 
-        # The raw field should preserve the original spec with revision
-        assert args.specs[0].raw == "test@HEAD~2"
-        assert args.specs[1].raw == "test@HEAD~1"
-        assert args.specs[2].raw == "test@HEAD"
+    # The raw field should preserve the original spec with revision
+    assert args.specs[0].raw == "test@HEAD~2"
+    assert args.specs[1].raw == "test@HEAD~1"
+    assert args.specs[2].raw == "test@HEAD"
 
-        # Now test that benchmarking fails on the middle revision
-        with pytest.raises(NixError) as exc_info:
-            benchmark_build(args.specs, args.hyperfine_args)
+    # Now test that benchmarking fails on the middle revision
+    with pytest.raises(NixError) as exc_info:
+        benchmark_build(args.specs, args.hyperfine_args)
 
-        assert exc_info.value.returncode is not None
-        assert "Command failed" in str(exc_info.value)
-
-    finally:
-        sys.argv = original_argv
+    assert exc_info.value.returncode is not None
+    assert "Command failed" in str(exc_info.value)
 
 
 def test_git_revision_with_eval_failures(
@@ -294,24 +288,19 @@ def test_git_revision_with_eval_failures(
     subprocess.run(["git", "commit", "-m", "Evaluation failure"], check=True)
 
     # Test parsing with git revisions - one success, one eval failure
-    original_argv = sys.argv
-    try:
-        sys.argv = ["nix-hyperfine", "--eval", "test@HEAD~1,HEAD", "--", "--runs", "1"]
-        args = parse_args()
+    argv = ["nix-hyperfine", "--eval", "test@HEAD~1,HEAD", "--", "--runs", "1"]
+    args = parse_args(argv)
 
-        assert len(args.specs) == 2
-        assert args.mode == BenchmarkMode.EVAL
+    assert len(args.specs) == 2
+    assert args.mode == BenchmarkMode.EVAL
 
-        # The raw field should preserve the original spec with revision
-        assert args.specs[0].raw == "test@HEAD~1"
-        assert args.specs[1].raw == "test@HEAD"
+    # The raw field should preserve the original spec with revision
+    assert args.specs[0].raw == "test@HEAD~1"
+    assert args.specs[1].raw == "test@HEAD"
 
-        # Now test that benchmarking fails on the evaluation
-        with pytest.raises(NixError) as exc_info:
-            benchmark_eval(args.specs, args.hyperfine_args)
+    # Now test that benchmarking fails on the evaluation
+    with pytest.raises(NixError) as exc_info:
+        benchmark_eval(args.specs, args.hyperfine_args)
 
-        assert exc_info.value.returncode is not None
-        assert "Command failed" in str(exc_info.value)
-
-    finally:
-        sys.argv = original_argv
+    assert exc_info.value.returncode is not None
+    assert "Command failed" in str(exc_info.value)

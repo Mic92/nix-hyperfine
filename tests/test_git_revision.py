@@ -2,7 +2,6 @@
 """Tests for git revision functionality."""
 
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -100,18 +99,13 @@ def test_git_revision_integration(
     subprocess.run(["git", "commit", "-m", "Version 2"], check=True)
 
     # Test parsing with git revisions
-    original_argv = sys.argv
-    try:
-        sys.argv = ["nix-hyperfine", "--eval", ".#test@HEAD~1,HEAD", "--", "--runs", "1"]
-        args = parse_args()
+    argv = ["nix-hyperfine", "--eval", ".#test@HEAD~1,HEAD", "--", "--runs", "1"]
+    args = parse_args(argv)
 
-        assert len(args.specs) == 2
-        assert args.mode == BenchmarkMode.EVAL
-        assert args.hyperfine_args == ["--runs", "1"]
+    assert len(args.specs) == 2
+    assert args.mode == BenchmarkMode.EVAL
+    assert args.hyperfine_args == ["--runs", "1"]
 
-        # The raw field should preserve the original spec with revision
-        assert args.specs[0].raw == ".#test@HEAD~1"
-        assert args.specs[1].raw == ".#test@HEAD"
-
-    finally:
-        sys.argv = original_argv
+    # The raw field should preserve the original spec with revision
+    assert args.specs[0].raw == ".#test@HEAD~1"
+    assert args.specs[1].raw == ".#test@HEAD"
