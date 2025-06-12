@@ -37,6 +37,7 @@ python.pkgs.buildPythonApplication {
     with python.pkgs;
     [
       pytestCheckHook
+      pytest-parallel
     ]
     ++ [
       nix

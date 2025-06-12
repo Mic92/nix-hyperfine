@@ -16,6 +16,7 @@ nix-hyperfine.overridePythonAttrs (old: {
     nix
     hyperfine
     python3.pkgs.pytestCheckHook
+    python3.pkgs.pytest-parallel
     git
   ];
 
@@ -28,6 +29,6 @@ nix-hyperfine.overridePythonAttrs (old: {
   # Use pytestCheckPhase which handles the test execution
   pytestFlagsArray = [
     "-v"
-    "-s"  # No capture, show print output
+    "-s" # No capture, show print output
   ];
 })

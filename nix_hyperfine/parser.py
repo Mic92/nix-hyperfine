@@ -71,7 +71,9 @@ def create_git_revision_spec(base_spec: str, revision: str) -> str:
         result = run_command(cmd, capture_output=True, check=True)
         store_path = result.stdout.strip()
     except NixError as e:
-        raise NixError(f"Failed to fetch git revision '{revision}' (commit {commit_hash}): {e}") from e
+        raise NixError(
+            f"Failed to fetch git revision '{revision}' (commit {commit_hash}): {e}"
+        ) from e
 
     # Modify the base spec to use the store path
     if "#" in base_spec and not base_spec.startswith("-"):

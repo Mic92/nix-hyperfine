@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """Tests for derivation specification classes."""
 
-import shutil
 from pathlib import Path
 
 import pytest
 
-from nix_hyperfine.command import run_command
 from nix_hyperfine.parser import parse_derivation_spec
 from nix_hyperfine.specs import AttributeSpec, FileSpec, FlakeSpec
 
@@ -32,7 +30,7 @@ def test_file_spec_simple_derivation(tmp_path: Path) -> None:
 
     # Test building - just verify it doesn't throw
     spec.build()
-    
+
     # In sandbox environment, building is sufficient test
 
 
@@ -74,7 +72,7 @@ def test_flake_spec_local_flake(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     flake_path = tmp_path / "flake.nix"
     flake_path.write_text("""
     {
-      outputs = { self }: 
+      outputs = { self }:
       let
         system = "x86_64-linux";
       in {

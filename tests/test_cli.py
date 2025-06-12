@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 """Tests for command-line interface."""
 
-import shutil
 import subprocess
 from pathlib import Path
-
-import pytest
 
 
 def test_command_line_invocation(tmp_path: Path) -> None:

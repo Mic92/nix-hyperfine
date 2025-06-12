@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Tests for git revision functionality."""
 
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -42,14 +41,12 @@ def test_expand_git_revisions_with_file_spec() -> None:
     assert result == [("-f default.nix -A hello", "HEAD~1"), ("-f default.nix -A hello", "HEAD")]
 
 
-def test_git_revision_integration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_git_revision_integration(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    git_env: None,  # noqa: ARG001
+) -> None:
     """Test git revision expansion with real git repo."""
-    # Set git configuration via environment variables
-    monkeypatch.setenv("GIT_AUTHOR_NAME", "Test User")
-    monkeypatch.setenv("GIT_AUTHOR_EMAIL", "test@example.com")
-    monkeypatch.setenv("GIT_COMMITTER_NAME", "Test User")
-    monkeypatch.setenv("GIT_COMMITTER_EMAIL", "test@example.com")
-    
     # Create a simple git repo
     repo_dir = tmp_path / "test-repo"
     repo_dir.mkdir()
@@ -61,7 +58,7 @@ def test_git_revision_integration(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     # Create initial flake with raw derivation
     flake_content = """
     {
-      outputs = { self }: 
+      outputs = { self }:
       let
         system = "x86_64-linux";
       in {
