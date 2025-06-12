@@ -70,21 +70,47 @@ def test_file_spec_with_attribute(tmp_path: Path) -> None:
 
 def test_flake_spec_local_flake(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test FlakeSpec with a local flake."""
+    # Get the current system - use builtins.currentSystem evaluation as fallback
+    try:
+        result = subprocess.run(
+            [
+                "nix",
+                "--extra-experimental-features",
+                "nix-command flakes",
+                "config",
+                "show",
+                "system",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        current_system = result.stdout.strip()
+    except subprocess.CalledProcessError:
+        # Fallback: evaluate builtins.currentSystem
+        result = subprocess.run(
+            ["nix", "eval", "--expr", "builtins.currentSystem"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        current_system = result.stdout.strip().strip('"')
+
     flake_path = tmp_path / "flake.nix"
-    flake_path.write_text("""
-    {
-      outputs = { self }:
+    flake_path.write_text(f"""
+    {{
+      outputs = {{ self }}:
       let
-        system = "x86_64-linux";
-      in {
-        packages.${system}.default = derivation {
+        system = "{current_system}";
+      in {{
+        packages.${{system}}.default = derivation {{
           name = "test-flake";
           inherit system;
           builder = "/bin/sh";
           args = [ "-c" "echo 'Hello from flake' > $out" ];
-        };
-      };
-    }
+        }};
+      }};
+    }}
     """)
 
     # Initialize git repo for flake (flakes require git)
