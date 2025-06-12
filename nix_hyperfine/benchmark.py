@@ -4,7 +4,7 @@ import subprocess
 from dataclasses import dataclass, field
 from enum import Enum, auto
 
-from .dependencies import build_dependencies, ensure_built
+from .dependencies import ensure_built
 from .specs import AttributeSpec, DerivationSpec, FileSpec, FlakeSpec
 
 
@@ -60,10 +60,9 @@ def benchmark_eval(specs: list[DerivationSpec], hyperfine_args: list[str]) -> No
         specs: List of derivation specifications
         hyperfine_args: Additional arguments to pass to hyperfine
     """
-    # Build dependencies for all derivations
-    for spec in specs:
-        drv_path = spec.get_derivation_path()
-        build_dependencies(drv_path)
+    # Pre-build all derivations to ensure dependencies exist
+    # This is faster than building dependencies separately
+    ensure_built(specs)
 
     # Create eval commands with names
     hyperfine_cmd = ["hyperfine", *hyperfine_args]
@@ -84,12 +83,9 @@ def benchmark_build(specs: list[DerivationSpec], hyperfine_args: list[str]) -> N
         specs: List of derivation specifications
         hyperfine_args: Additional arguments to pass to hyperfine
     """
-    # Build dependencies for all derivations
-    for spec in specs:
-        drv_path = spec.get_derivation_path()
-        build_dependencies(drv_path)
-
     # Pre-build all derivations
+    # This ensures all dependencies are available and is faster than
+    # building dependencies separately
     ensure_built(specs)
 
     # Create build commands with names
