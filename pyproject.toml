@@ -42,6 +42,9 @@ line-length = 100
 select = ["ALL"]
 ignore = [
     "E501",  # line too long (handled by formatter)
+    "T201",  # print found - we use print for user output
+    "D203",  # 1 blank line required before class docstring (conflicts with D211)
+    "D213",  # Multi-line docstring summary should start at the second line (conflicts with D212)
 ]
 
 [tool.ruff.format]
