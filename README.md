@@ -58,7 +58,7 @@ nix run github:Mic92/nix-hyperfine -- hello cowsay lolcat
 
 See nix-hyperfine in action benchmarking NixOS tests:
 
-[![asciicast](https://asciinema.org/a/Fe3GqUrDTS0fEgw3fs9L2chPn.svg)](https://asciinema.org/a/Fe3GqUrDTS0fEgw3fs9L2chPn)
+<script id="asciicast-Fe3GqUrDTS0fEgw3fs9L2chPn" src="https://asciinema.org/a/Fe3GqUrDTS0fEgw3fs9L2chPn.js" async></script>
 
 *Demo shows benchmarking `nixosTests.ferm` across git revisions*
 
