@@ -7,7 +7,7 @@ name = "nix-hyperfine"
 version = "0.1.0"
 description = "Benchmarks Nix build and evaluation times using hyperfine"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 authors = [
     { name = "nix-hyperfine contributors" }
 ]
@@ -16,7 +16,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Build Tools",
@@ -72,3 +71,12 @@ disallow_untyped_defs = true
 [[tool.mypy.overrides]]
 module = "pytest"
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Default options for pytest
+# Parallel execution is enabled by default when pytest-xdist is available
+addopts = [
+    "-v",
+    "-n", "auto"
+]

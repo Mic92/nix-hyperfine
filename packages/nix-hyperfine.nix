@@ -4,6 +4,7 @@
   hyperfine,
   makeWrapper,
   nix,
+  git,
   fileset ? lib.fileset,
 }:
 
@@ -37,11 +38,12 @@ python.pkgs.buildPythonApplication {
     with python.pkgs;
     [
       pytestCheckHook
-      pytest-parallel
+      pytest-xdist
     ]
     ++ [
       nix
       hyperfine
+      git
     ];
 
   # We need to disable sandbox for tests that use nix

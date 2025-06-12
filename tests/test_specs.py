@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Tests for derivation specification classes."""
 
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -85,6 +86,10 @@ def test_flake_spec_local_flake(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
       };
     }
     """)
+
+    # Initialize git repo for flake (flakes require git)
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "add", "flake.nix"], cwd=tmp_path, check=True)
 
     # Change to the temp directory
     monkeypatch.chdir(tmp_path)

@@ -12,6 +12,7 @@ mkShell {
     (python3.withPackages (
       ps: with ps; [
         pytest
+        pytest-xdist
         mypy
       ]
     ))

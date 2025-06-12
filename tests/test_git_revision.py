@@ -67,8 +67,8 @@ def test_git_revision_integration(
     repo_dir.mkdir()
 
     # Initialize git repo
+    subprocess.run(["git", "init"], cwd=repo_dir, check=True)
     monkeypatch.chdir(repo_dir)
-    subprocess.run(["git", "init"], check=True)
 
     # Create initial flake with raw derivation
     flake_content = """
@@ -89,14 +89,14 @@ def test_git_revision_integration(
     flake_path = repo_dir / "flake.nix"
     flake_path.write_text(flake_content)
 
-    subprocess.run(["git", "add", "flake.nix"], check=True)
-    subprocess.run(["git", "commit", "-m", "Initial commit"], check=True)
+    subprocess.run(["git", "add", "flake.nix"], cwd=repo_dir, check=True)
+    subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=repo_dir, check=True)
 
     # Create second version
     flake_content_v2 = flake_content.replace("version 1", "version 2").replace("test-v1", "test-v2")
     flake_path.write_text(flake_content_v2)
-    subprocess.run(["git", "add", "flake.nix"], check=True)
-    subprocess.run(["git", "commit", "-m", "Version 2"], check=True)
+    subprocess.run(["git", "add", "flake.nix"], cwd=repo_dir, check=True)
+    subprocess.run(["git", "commit", "-m", "Version 2"], cwd=repo_dir, check=True)
 
     # Test parsing with git revisions
     argv = ["nix-hyperfine", "--eval", ".#test@HEAD~1,HEAD", "--", "--runs", "1"]

@@ -1,9 +1,5 @@
 {
   nix-hyperfine,
-  python3,
-  nix,
-  hyperfine,
-  git,
   nixpkgs,
 }:
 
@@ -12,13 +8,8 @@ nix-hyperfine.overridePythonAttrs (old: {
   doCheck = true;
 
   # Additional test dependencies if needed
-  nativeCheckInputs = old.nativeCheckInputs or [ ] ++ [
-    nix
-    hyperfine
-    python3.pkgs.pytestCheckHook
-    python3.pkgs.pytest-parallel
-    git
-  ];
+  # All dependencies are already provided by the base package
+  nativeCheckInputs = old.nativeCheckInputs or [ ];
 
   # Set up test environment before checks
   preCheck = ''
@@ -27,8 +18,9 @@ nix-hyperfine.overridePythonAttrs (old: {
   '';
 
   # Use pytestCheckPhase which handles the test execution
+  # Additional flags can be specified here if needed
+  # Base configuration is in pyproject.toml
   pytestFlagsArray = [
-    "-v"
     "-s" # No capture, show print output
   ];
 })

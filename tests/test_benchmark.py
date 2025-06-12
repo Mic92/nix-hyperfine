@@ -170,13 +170,13 @@ def test_git_revision_with_build_failures(
     git_env: None,  # noqa: ARG001
 ) -> None:
     """Test git revision comparison where builds fail in different revisions."""
-    # Create a simple git repo
-    repo_dir = tmp_path / "test-repo"
+    # Create a simple git repo with unique name
+    repo_dir = tmp_path / "build-fail-repo"
     repo_dir.mkdir()
 
     # Initialize git repo
+    subprocess.run(["git", "init"], cwd=repo_dir, check=True)
     monkeypatch.chdir(repo_dir)
-    subprocess.run(["git", "init"], check=True)
 
     # Create initial version that builds successfully
     nix_content_success = """
@@ -192,8 +192,8 @@ def test_git_revision_with_build_failures(
     nix_path = repo_dir / "default.nix"
     nix_path.write_text(nix_content_success)
 
-    subprocess.run(["git", "add", "default.nix"], check=True)
-    subprocess.run(["git", "commit", "-m", "Working version"], check=True)
+    subprocess.run(["git", "add", "default.nix"], cwd=repo_dir, check=True)
+    subprocess.run(["git", "commit", "-m", "Working version"], cwd=repo_dir, check=True)
 
     # Create second version that fails to build
     nix_content_fail = """
@@ -207,8 +207,8 @@ def test_git_revision_with_build_failures(
     }
     """
     nix_path.write_text(nix_content_fail)
-    subprocess.run(["git", "add", "default.nix"], check=True)
-    subprocess.run(["git", "commit", "-m", "Failing version"], check=True)
+    subprocess.run(["git", "add", "default.nix"], cwd=repo_dir, check=True)
+    subprocess.run(["git", "commit", "-m", "Failing version"], cwd=repo_dir, check=True)
 
     # Create third version that succeeds again
     nix_content_success2 = """
@@ -222,8 +222,8 @@ def test_git_revision_with_build_failures(
     }
     """
     nix_path.write_text(nix_content_success2)
-    subprocess.run(["git", "add", "default.nix"], check=True)
-    subprocess.run(["git", "commit", "-m", "Fixed version"], check=True)
+    subprocess.run(["git", "add", "default.nix"], cwd=repo_dir, check=True)
+    subprocess.run(["git", "commit", "-m", "Fixed version"], cwd=repo_dir, check=True)
 
     # Test parsing with git revisions - success, fail, success
     argv = ["nix-hyperfine", "test@HEAD~2,HEAD~1,HEAD", "--", "--runs", "1"]
@@ -252,13 +252,13 @@ def test_git_revision_with_eval_failures(
     git_env: None,  # noqa: ARG001
 ) -> None:
     """Test git revision comparison where evaluation fails in some revisions."""
-    # Create a simple git repo
-    repo_dir = tmp_path / "test-repo"
+    # Create a simple git repo with unique name
+    repo_dir = tmp_path / "eval-fail-repo"
     repo_dir.mkdir()
 
     # Initialize git repo
+    subprocess.run(["git", "init"], cwd=repo_dir, check=True)
     monkeypatch.chdir(repo_dir)
-    subprocess.run(["git", "init"], check=True)
 
     # Create initial version that evaluates successfully
     nix_content_success = """
@@ -274,8 +274,8 @@ def test_git_revision_with_eval_failures(
     nix_path = repo_dir / "default.nix"
     nix_path.write_text(nix_content_success)
 
-    subprocess.run(["git", "add", "default.nix"], check=True)
-    subprocess.run(["git", "commit", "-m", "Working evaluation"], check=True)
+    subprocess.run(["git", "add", "default.nix"], cwd=repo_dir, check=True)
+    subprocess.run(["git", "commit", "-m", "Working evaluation"], cwd=repo_dir, check=True)
 
     # Create second version that fails during evaluation
     nix_content_eval_fail = """
@@ -284,8 +284,8 @@ def test_git_revision_with_eval_failures(
     }
     """
     nix_path.write_text(nix_content_eval_fail)
-    subprocess.run(["git", "add", "default.nix"], check=True)
-    subprocess.run(["git", "commit", "-m", "Evaluation failure"], check=True)
+    subprocess.run(["git", "add", "default.nix"], cwd=repo_dir, check=True)
+    subprocess.run(["git", "commit", "-m", "Evaluation failure"], cwd=repo_dir, check=True)
 
     # Test parsing with git revisions - one success, one eval failure
     argv = ["nix-hyperfine", "--eval", "test@HEAD~1,HEAD", "--", "--runs", "1"]
