@@ -18,8 +18,12 @@ def test_benchmark_eval_mode(tmp_path: Path) -> None:
     """Test benchmark_eval function."""
     nix_file = tmp_path / "test.nix"
     nix_file.write_text("""
-    { pkgs ? import <nixpkgs> {} }:
-    pkgs.runCommand "test-eval" {} "echo 'test' > $out"
+    derivation {
+      name = "test-eval";
+      system = builtins.currentSystem;
+      builder = "/bin/sh";
+      args = [ "-c" "echo 'test' > $out" ];
+    }
     """)
 
     spec = parse_derivation_spec(f"-f {nix_file}")
@@ -36,8 +40,12 @@ def test_benchmark_build_mode(tmp_path: Path) -> None:
     """Test benchmark_build function."""
     nix_file = tmp_path / "test.nix"
     nix_file.write_text("""
-    { pkgs ? import <nixpkgs> {} }:
-    pkgs.runCommand "test-build" {} "echo 'test' > $out"
+    derivation {
+      name = "test-build";
+      system = builtins.currentSystem;
+      builder = "/bin/sh";
+      args = [ "-c" "echo 'test' > $out" ];
+    }
     """)
 
     spec = parse_derivation_spec(f"-f {nix_file}")
@@ -54,10 +62,19 @@ def test_benchmark_multiple_specs(tmp_path: Path) -> None:
     """Test benchmarking multiple derivations."""
     nix_file = tmp_path / "test.nix"
     nix_file.write_text("""
-    { pkgs ? import <nixpkgs> {} }:
     {
-      fast = pkgs.runCommand "fast" {} "echo fast > $out";
-      slow = pkgs.runCommand "slow" {} "sleep 0.05; echo slow > $out";
+      fast = derivation {
+        name = "fast";
+        system = builtins.currentSystem;
+        builder = "/bin/sh";
+        args = [ "-c" "echo fast > $out" ];
+      };
+      slow = derivation {
+        name = "slow";
+        system = builtins.currentSystem;
+        builder = "/bin/sh";
+        args = [ "-c" "sleep 0.05; echo slow > $out" ];
+      };
     }
     """)
 

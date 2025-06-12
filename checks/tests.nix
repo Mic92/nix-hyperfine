@@ -28,6 +28,6 @@ nix-hyperfine.overridePythonAttrs (old: {
   # Use pytestCheckPhase which handles the test execution
   pytestFlagsArray = [
     "-v"
-    "--no-capture-output"
+    "-s"  # No capture, show print output
   ];
 })
