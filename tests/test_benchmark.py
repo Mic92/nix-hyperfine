@@ -1,19 +1,12 @@
 #!/usr/bin/env python3
 """Tests for benchmarking functionality."""
 
-import shutil
 from pathlib import Path
-
-import pytest
 
 from nix_hyperfine.benchmark import benchmark_build, benchmark_eval
 from nix_hyperfine.parser import parse_derivation_spec
 
 
-@pytest.mark.skipif(
-    shutil.which("nix") is None or shutil.which("hyperfine") is None,
-    reason="Nix or hyperfine not available",
-)
 def test_benchmark_eval_mode(tmp_path: Path) -> None:
     """Test benchmark_eval function."""
     nix_file = tmp_path / "test.nix"
@@ -32,10 +25,6 @@ def test_benchmark_eval_mode(tmp_path: Path) -> None:
     benchmark_eval([spec], ["--runs", "1"])
 
 
-@pytest.mark.skipif(
-    shutil.which("nix") is None or shutil.which("hyperfine") is None,
-    reason="Nix or hyperfine not available",
-)
 def test_benchmark_build_mode(tmp_path: Path) -> None:
     """Test benchmark_build function."""
     nix_file = tmp_path / "test.nix"
@@ -54,10 +43,6 @@ def test_benchmark_build_mode(tmp_path: Path) -> None:
     benchmark_build([spec], ["--runs", "1"])
 
 
-@pytest.mark.skipif(
-    shutil.which("nix") is None or shutil.which("hyperfine") is None,
-    reason="Nix or hyperfine not available",
-)
 def test_benchmark_multiple_specs(tmp_path: Path) -> None:
     """Test benchmarking multiple derivations."""
     nix_file = tmp_path / "test.nix"
