@@ -59,4 +59,4 @@ def run_command(
         error_msg = f"Command failed: {' '.join(cmd)}"
         if e.stderr:
             error_msg += f"\nError: {e.stderr.strip()}"
-        raise NixError(error_msg) from e
+        raise NixError(error_msg, returncode=e.returncode) from e

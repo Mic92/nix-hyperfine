@@ -9,14 +9,19 @@ from .exceptions import HyperfineError, NixError
 from .parser import parse_args
 
 
-def main() -> None:
-    """Execute main program entry point."""
+def main(argv: list[str] | None = None) -> None:
+    """Execute main program entry point.
+
+    Args:
+        argv: Command line arguments (defaults to sys.argv)
+
+    """
     try:
         # Check hyperfine is available
         check_hyperfine()
 
         # Parse arguments
-        args = parse_args()
+        args = parse_args(argv)
 
         # Run appropriate benchmark
         match args.mode:

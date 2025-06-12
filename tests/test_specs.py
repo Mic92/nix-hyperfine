@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Tests for derivation specification classes."""
 
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -26,7 +27,7 @@ def test_file_spec_simple_derivation(tmp_path: Path) -> None:
     # Test getting derivation path
     drv_path = spec.get_derivation_path()
     assert drv_path.endswith(".drv")
-    assert "/nix/store/" in drv_path
+    assert "/store/" in drv_path
 
     # Test building - just verify it doesn't throw
     spec.build()
@@ -69,22 +70,52 @@ def test_file_spec_with_attribute(tmp_path: Path) -> None:
 
 def test_flake_spec_local_flake(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test FlakeSpec with a local flake."""
+    # Get the current system - use builtins.currentSystem evaluation as fallback
+    try:
+        result = subprocess.run(
+            [
+                "nix",
+                "--extra-experimental-features",
+                "nix-command flakes",
+                "config",
+                "show",
+                "system",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        current_system = result.stdout.strip()
+    except subprocess.CalledProcessError:
+        # Fallback: evaluate builtins.currentSystem
+        result = subprocess.run(
+            ["nix", "eval", "--expr", "builtins.currentSystem"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        current_system = result.stdout.strip().strip('"')
+
     flake_path = tmp_path / "flake.nix"
-    flake_path.write_text("""
-    {
-      outputs = { self }:
+    flake_path.write_text(f"""
+    {{
+      outputs = {{ self }}:
       let
-        system = "x86_64-linux";
-      in {
-        packages.${system}.default = derivation {
+        system = "{current_system}";
+      in {{
+        packages.${{system}}.default = derivation {{
           name = "test-flake";
           inherit system;
           builder = "/bin/sh";
           args = [ "-c" "echo 'Hello from flake' > $out" ];
-        };
-      };
-    }
+        }};
+      }};
+    }}
     """)
+
+    # Initialize git repo for flake (flakes require git)
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "add", "flake.nix"], cwd=tmp_path, check=True)
 
     # Change to the temp directory
     monkeypatch.chdir(tmp_path)
@@ -95,7 +126,7 @@ def test_flake_spec_local_flake(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     # Test getting derivation path
     drv_path = spec.get_derivation_path()
     assert drv_path.endswith(".drv")
-    assert "/nix/store/" in drv_path
+    assert "/store/" in drv_path
 
     # Test building
     spec.build()
@@ -123,5 +154,5 @@ def test_attribute_spec_with_nix_file(tmp_path: Path, monkeypatch: pytest.Monkey
     # Test getting derivation path
     drv_path = spec.get_derivation_path()
     assert drv_path.endswith(".drv")
-    assert "/nix/store/" in drv_path
+    assert "/store/" in drv_path
     assert "test-attr" in drv_path

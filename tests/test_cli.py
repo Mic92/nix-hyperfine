@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Tests for command-line interface."""
 
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 
-def test_command_line_invocation(tmp_path: Path) -> None:
+def test_cli_invocation(tmp_path: Path) -> None:
     """Test invoking nix-hyperfine via command line."""
     nix_file = tmp_path / "test.nix"
     nix_file.write_text("""
@@ -18,11 +20,18 @@ def test_command_line_invocation(tmp_path: Path) -> None:
     """)
 
     # Test basic invocation
+    # Add project root to PYTHONPATH so module can be found
+    env = os.environ.copy()
+    project_root = Path(__file__).parent.parent
+    env["PYTHONPATH"] = str(project_root) + os.pathsep + env.get("PYTHONPATH", "")
+
     result = subprocess.run(
-        ["python", "-m", "nix_hyperfine", f"-f {nix_file}", "--", "--runs", "1"],
+        [sys.executable, "-m", "nix_hyperfine", f"-f {nix_file}", "--", "--runs", "1"],
         capture_output=True,
         text=True,
         check=False,
+        cwd=tmp_path,
+        env=env,
     )
 
     assert result.returncode == 0
@@ -42,11 +51,18 @@ def test_cli_eval_mode(tmp_path: Path) -> None:
     """)
 
     # Test eval mode invocation
+    # Add project root to PYTHONPATH so module can be found
+    env = os.environ.copy()
+    project_root = Path(__file__).parent.parent
+    env["PYTHONPATH"] = str(project_root) + os.pathsep + env.get("PYTHONPATH", "")
+
     result = subprocess.run(
-        ["python", "-m", "nix_hyperfine", "--eval", f"-f {nix_file}", "--", "--runs", "1"],
+        [sys.executable, "-m", "nix_hyperfine", "--eval", f"-f {nix_file}", "--", "--runs", "1"],
         capture_output=True,
         text=True,
         check=False,
+        cwd=tmp_path,
+        env=env,
     )
 
     assert result.returncode == 0
@@ -56,7 +72,7 @@ def test_cli_eval_mode(tmp_path: Path) -> None:
 def test_cli_help() -> None:
     """Test CLI help output."""
     result = subprocess.run(
-        ["python", "-m", "nix_hyperfine", "--help"],
+        [sys.executable, "-m", "nix_hyperfine", "--help"],
         capture_output=True,
         text=True,
         check=False,

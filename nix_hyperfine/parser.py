@@ -146,8 +146,11 @@ def parse_derivation_spec(spec: str) -> DerivationSpec:
             return AttributeSpec(raw=spec, attribute=spec)
 
 
-def parse_args() -> ParsedArgs:
+def parse_args(argv: list[str] | None = None) -> ParsedArgs:
     """Parse command-line arguments.
+
+    Args:
+        argv: Command line arguments (defaults to sys.argv)
 
     Returns:
         ParsedArgs containing derivation specs, benchmark mode, and hyperfine args
@@ -155,13 +158,16 @@ def parse_args() -> ParsedArgs:
     """
     import sys
 
+    if argv is None:
+        argv = sys.argv
+
     # Split args at -- separator
-    if "--" in sys.argv:
-        sep_index = sys.argv.index("--")
-        our_args = sys.argv[1:sep_index]
-        hyperfine_args = sys.argv[sep_index + 1 :]
+    if "--" in argv:
+        sep_index = argv.index("--")
+        our_args = argv[1:sep_index]
+        hyperfine_args = argv[sep_index + 1 :]
     else:
-        our_args = sys.argv[1:]
+        our_args = argv[1:]
         hyperfine_args = []
 
     parser = argparse.ArgumentParser(
