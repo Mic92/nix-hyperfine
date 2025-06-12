@@ -8,8 +8,6 @@ from .dependencies import check_hyperfine
 from .exceptions import HyperfineError, NixError
 from .parser import parse_args
 
-__version__ = "0.1.0"
-
 
 def main() -> None:
     """Execute main program entry point."""
@@ -18,13 +16,14 @@ def main() -> None:
         check_hyperfine()
 
         # Parse arguments
-        specs, mode, hyperfine_args = parse_args()
+        args = parse_args()
 
         # Run appropriate benchmark
-        if mode == BenchmarkMode.EVAL:
-            benchmark_eval(specs, hyperfine_args)
-        else:
-            benchmark_build(specs, hyperfine_args)
+        match args.mode:
+            case BenchmarkMode.EVAL:
+                benchmark_eval(args.specs, args.hyperfine_args)
+            case BenchmarkMode.BUILD:
+                benchmark_build(args.specs, args.hyperfine_args)
 
     except (NixError, HyperfineError) as e:
         print(error(f"Error: {e}"), file=sys.stderr)

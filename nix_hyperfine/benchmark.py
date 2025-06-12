@@ -1,7 +1,6 @@
 """Benchmarking functionality."""
 
 import subprocess
-from dataclasses import dataclass, field
 from enum import Enum, auto
 
 from .dependencies import ensure_built
@@ -13,15 +12,6 @@ class BenchmarkMode(Enum):
 
     BUILD = auto()
     EVAL = auto()
-
-
-@dataclass
-class BenchmarkConfig:
-    """Configuration for benchmarking."""
-
-    specs: list[DerivationSpec]
-    mode: BenchmarkMode = BenchmarkMode.BUILD
-    hyperfine_args: list[str] = field(default_factory=list)
 
 
 def _get_eval_command(spec: DerivationSpec) -> str:

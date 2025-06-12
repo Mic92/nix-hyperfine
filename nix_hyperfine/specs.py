@@ -2,15 +2,8 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum, auto
 
 from .command import run_command
-
-
-class SpecType(Enum):
-    FLAKE = auto()
-    FILE = auto()
-    ATTR = auto()
 
 
 @dataclass
