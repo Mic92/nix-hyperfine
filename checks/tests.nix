@@ -19,17 +19,15 @@ nix-hyperfine.overridePythonAttrs (old: {
     git
   ];
 
-  # Run tests with pytest
-  checkPhase = ''
-    runHook preCheck
-
-    # Set up test environment
+  # Set up test environment before checks
+  preCheck = ''
     export HOME=$TMPDIR
     export NIX_PATH=nixpkgs=${nixpkgs}
-
-    # Run pytest
-    pytest tests -v
-
-    runHook postCheck
   '';
+
+  # Use pytestCheckPhase which handles the test execution
+  pytestFlagsArray = [
+    "-v"
+    "--no-capture-output"
+  ];
 })
