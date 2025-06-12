@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+"""Tests for git revision functionality."""
+
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+from nix_hyperfine.benchmark import BenchmarkMode
+from nix_hyperfine.parser import expand_git_revisions, parse_args
+
+
+def test_expand_git_revisions_no_revision() -> None:
+    """Test expand_git_revisions with no revision."""
+    result = expand_git_revisions("hello")
+    assert result == [("hello", None)]
+
+
+def test_expand_git_revisions_single_revision() -> None:
+    """Test expand_git_revisions with single revision."""
+    result = expand_git_revisions("hello@HEAD~1")
+    assert result == [("hello", "HEAD~1")]
+
+
+def test_expand_git_revisions_multiple_revisions() -> None:
+    """Test expand_git_revisions with multiple revisions."""
+    result = expand_git_revisions("hello@HEAD~1,HEAD,main")
+    assert result == [("hello", "HEAD~1"), ("hello", "HEAD"), ("hello", "main")]
+
+
+def test_expand_git_revisions_with_flake() -> None:
+    """Test expand_git_revisions with flake reference."""
+    result = expand_git_revisions("nixpkgs#hello@v23.11")
+    assert result == [("nixpkgs#hello", "v23.11")]
+
+
+def test_expand_git_revisions_with_file_spec() -> None:
+    """Test expand_git_revisions with file specification."""
+    result = expand_git_revisions("-f default.nix -A hello@HEAD~1,HEAD")
+    assert result == [("-f default.nix -A hello", "HEAD~1"), ("-f default.nix -A hello", "HEAD")]
+
+
+@pytest.mark.skipif(
+    subprocess.run(["git", "--version"], capture_output=True).returncode != 0,
+    reason="Git not available",
+)
+def test_git_revision_integration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test git revision expansion with real git repo."""
+    # Create a simple git repo
+    repo_dir = tmp_path / "test-repo"
+    repo_dir.mkdir()
+
+    # Initialize git repo
+    monkeypatch.chdir(repo_dir)
+    subprocess.run(["git", "init"], check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], check=True)
+    subprocess.run(["git", "config", "user.name", "Test User"], check=True)
+
+    # Create initial flake
+    flake_content = """
+    {
+      outputs = { self, nixpkgs }: {
+        packages.x86_64-linux.test =
+          nixpkgs.legacyPackages.x86_64-linux.runCommand "test-v1" {}
+            "echo 'version 1' > $out";
+      };
+    }
+    """
+    flake_path = repo_dir / "flake.nix"
+    flake_path.write_text(flake_content)
+
+    subprocess.run(["git", "add", "flake.nix"], check=True)
+    subprocess.run(["git", "commit", "-m", "Initial commit"], check=True)
+
+    # Create second version
+    flake_content_v2 = flake_content.replace("version 1", "version 2").replace("test-v1", "test-v2")
+    flake_path.write_text(flake_content_v2)
+    subprocess.run(["git", "add", "flake.nix"], check=True)
+    subprocess.run(["git", "commit", "-m", "Version 2"], check=True)
+
+    # Test parsing with git revisions
+    original_argv = sys.argv
+    try:
+        sys.argv = ["nix-hyperfine", "--eval", ".#test@HEAD~1,HEAD", "--", "--runs", "1"]
+        specs, mode, hyperfine_args = parse_args()
+
+        assert len(specs) == 2
+        assert mode == BenchmarkMode.EVAL
+        assert hyperfine_args == ["--runs", "1"]
+
+        # The raw field should preserve the original spec with revision
+        assert specs[0].raw == ".#test@HEAD~1"
+        assert specs[1].raw == ".#test@HEAD"
+
+    finally:
+        sys.argv = original_argv
