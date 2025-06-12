@@ -46,11 +46,6 @@ def error(text: str) -> str:
     return colorize(text, Colors.RED)
 
 
-def success(text: str) -> str:
-    """Format success text with green color."""
-    return colorize(text, Colors.GREEN)
-
-
 def warning(text: str) -> str:
     """Format warning text with yellow color."""
     return colorize(text, Colors.YELLOW)
@@ -59,11 +54,6 @@ def warning(text: str) -> str:
 def info(text: str) -> str:
     """Format info text with blue color."""
     return colorize(text, Colors.BLUE)
-
-
-def bold(text: str) -> str:
-    """Format text as bold."""
-    return colorize(text, Colors.BOLD)
 
 
 def dim(text: str) -> str:
