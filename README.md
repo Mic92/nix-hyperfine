@@ -54,6 +54,14 @@ Benchmark building multiple derivations:
 nix run github:Mic92/nix-hyperfine -- hello cowsay lolcat
 ```
 
+### Demo
+
+See nix-hyperfine in action benchmarking NixOS tests:
+
+[![asciicast](https://asciinema.org/a/Fe3GqUrDTS0fEgw3fs9L2chPn.svg)](https://asciinema.org/a/Fe3GqUrDTS0fEgw3fs9L2chPn)
+
+*Demo shows benchmarking `nixosTests.ferm` across git revisions*
+
 ### Benchmark modes
 
 By default, nix-hyperfine benchmarks the build phase. You can also benchmark evaluation:
