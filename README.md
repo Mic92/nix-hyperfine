@@ -150,29 +150,72 @@ In both modes, nix-hyperfine ensures that hyperfine only measures the actual bui
 
 ## Example Output
 
-### Build Mode Example
+### Basic Build Benchmark
 
 ```bash
-$ nix run github:Mic92/nix-hyperfine -- hello
-Getting dependencies for /nix/store/xxx-hello-2.12.2.drv...
-Building 275 dependencies...
-Pre-building hello...
-Running: hyperfine -n hello nix-build -A hello
-Benchmark 1: hello
-  Time (mean ± σ):     481.2 ms ±  53.1 ms    [User: 259.1 ms, System: 90.4 ms]
-  Range (min … max):   395.1 ms … 529.5 ms    10 runs
+$ nix run github:Mic92/nix-hyperfine -- nixpkgs#cowsay
+Pre-building nixpkgs#cowsay...
+  Pre-build completed in 0.81s
+Running: hyperfine -n nixpkgs#cowsay nix --extra-experimental-features 'nix-command flakes' build nixpkgs#cowsay --rebuild
+Benchmark 1: nixpkgs#cowsay
+  Time (mean ± σ):     549.5 ms ± 181.3 ms    [User: 17.2 ms, System: 11.4 ms]
+  Range (min … max):   442.3 ms … 758.8 ms    10 runs
+ 
+  Warning: The first benchmarking run for this command was significantly slower than the rest (758.8 ms). This could be caused by (filesystem) caches that were not filled until after the first run. You should consider using the '--warmup' option to fill those caches before the actual benchmark. Alternatively, use the '--prepare' option to clear the caches before each timing run.
 ```
 
-### Eval Mode Example
+### Comparing Multiple Packages
 
 ```bash
-$ nix run github:Mic92/nix-hyperfine -- --eval hello
-Getting dependencies for /nix/store/xxx-hello-2.12.2.drv...
-Building 275 dependencies...
-Running: hyperfine -n hello nix-instantiate -A hello
+$ nix run github:Mic92/nix-hyperfine -- hello cowsay -- --runs 5 --warmup 2
+Pre-building hello...
+  Pre-build completed in 0.45s
+Pre-building cowsay...
+  Pre-build completed in 0.63s
+Running: hyperfine --runs 5 --warmup 2 -n hello -n cowsay nix --extra-experimental-features 'nix-command flakes' build nixpkgs#hello --rebuild nix --extra-experimental-features 'nix-command flakes' build nixpkgs#cowsay --rebuild
 Benchmark 1: hello
+  Time (mean ± σ):     334.2 ms ±  15.7 ms    [User: 12.1 ms, System: 8.3 ms]
+  Range (min … max):   318.5 ms … 356.8 ms    5 runs
+ 
+Benchmark 2: cowsay
+  Time (mean ± σ):     421.8 ms ±  22.4 ms    [User: 15.7 ms, System: 10.2 ms]
+  Range (min … max):   395.2 ms … 448.1 ms    5 runs
+ 
+Summary
+  hello ran
+    1.26 ± 0.09 times faster than cowsay
+```
+
+### Evaluation Benchmarks
+
+```bash
+$ nix run github:Mic92/nix-hyperfine -- --eval nixpkgs#hello -- --runs 5
+Running: hyperfine --runs 5 -n nixpkgs#hello nix --extra-experimental-features 'nix-command flakes' eval nixpkgs#hello --raw
+Benchmark 1: nixpkgs#hello
   Time (mean ± σ):     517.7 ms ±  38.4 ms    [User: 285.2 ms, System: 101.4 ms]
-  Range (min … max):   451.1 ms … 563.0 ms    10 runs
+  Range (min … max):   451.1 ms … 563.0 ms    5 runs
+```
+
+### Git Revision Comparison
+
+```bash
+$ nix run github:Mic92/nix-hyperfine -- "nixpkgs#hello@main,staging" -- --runs 3
+Pre-building nixpkgs#hello@main...
+  Pre-build completed in 0.52s
+Pre-building nixpkgs#hello@staging...
+  Pre-build completed in 0.49s
+Running: hyperfine --runs 3 -n nixpkgs#hello@main -n nixpkgs#hello@staging [commands...]
+Benchmark 1: nixpkgs#hello@main
+  Time (mean ± σ):     345.1 ms ±  12.3 ms    [User: 13.2 ms, System: 9.1 ms]
+  Range (min … max):   334.2 ms … 358.7 ms    3 runs
+ 
+Benchmark 2: nixpkgs#hello@staging
+  Time (mean ± σ):     352.4 ms ±  18.7 ms    [User: 14.1 ms, System: 9.8 ms]
+  Range (min … max):   338.9 ms … 374.2 ms    3 runs
+ 
+Summary
+  nixpkgs#hello@main ran
+    1.02 ± 0.07 times faster than nixpkgs#hello@staging
 ```
 
 ## License
