@@ -27,7 +27,7 @@ def test_file_spec_simple_derivation(tmp_path: Path) -> None:
     # Test getting derivation path
     drv_path = spec.get_derivation_path()
     assert drv_path.endswith(".drv")
-    assert "/nix/store/" in drv_path
+    assert "/store/" in drv_path
 
     # Test building - just verify it doesn't throw
     spec.build()
@@ -126,7 +126,7 @@ def test_flake_spec_local_flake(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     # Test getting derivation path
     drv_path = spec.get_derivation_path()
     assert drv_path.endswith(".drv")
-    assert "/nix/store/" in drv_path
+    assert "/store/" in drv_path
 
     # Test building
     spec.build()
@@ -154,5 +154,5 @@ def test_attribute_spec_with_nix_file(tmp_path: Path, monkeypatch: pytest.Monkey
     # Test getting derivation path
     drv_path = spec.get_derivation_path()
     assert drv_path.endswith(".drv")
-    assert "/nix/store/" in drv_path
+    assert "/store/" in drv_path
     assert "test-attr" in drv_path

@@ -70,21 +70,47 @@ def test_git_revision_integration(
     subprocess.run(["git", "init"], cwd=repo_dir, check=True)
     monkeypatch.chdir(repo_dir)
 
+    # Get the current system - use builtins.currentSystem evaluation as fallback
+    try:
+        result = subprocess.run(
+            [
+                "nix",
+                "--extra-experimental-features",
+                "nix-command flakes",
+                "config",
+                "show",
+                "system",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        current_system = result.stdout.strip()
+    except subprocess.CalledProcessError:
+        # Fallback: evaluate builtins.currentSystem
+        result = subprocess.run(
+            ["nix", "eval", "--expr", "builtins.currentSystem"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        current_system = result.stdout.strip().strip('"')
+
     # Create initial flake with raw derivation
-    flake_content = """
-    {
-      outputs = { self }:
+    flake_content = f"""
+    {{
+      outputs = {{ self }}:
       let
-        system = "x86_64-linux";
-      in {
-        packages.${system}.test = derivation {
+        system = "{current_system}";
+      in {{
+        packages.${{system}}.test = derivation {{
           name = "test-v1";
           inherit system;
           builder = "/bin/sh";
           args = [ "-c" "echo 'version 1' > $out" ];
-        };
-      };
-    }
+        }};
+      }};
+    }}
     """
     flake_path = repo_dir / "flake.nix"
     flake_path.write_text(flake_content)

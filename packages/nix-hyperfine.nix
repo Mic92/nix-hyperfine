@@ -34,6 +34,13 @@ python.pkgs.buildPythonApplication {
 
   dependencies = [ ];
 
+  # Use pytestCheckPhase which handles the test execution
+  # Additional flags can be specified here if needed
+  # Base configuration is in pyproject.toml
+  pytestFlagsArray = [
+    "-s" # No capture, show print output
+  ];
+
   nativeCheckInputs =
     with python.pkgs;
     [
@@ -46,7 +53,7 @@ python.pkgs.buildPythonApplication {
       git
     ];
 
-  # We need to disable sandbox for tests that use nix
+  # Tests are run separately in checks/tests.nix
   doCheck = false;
 
   # Wrap the executable to include hyperfine in PATH

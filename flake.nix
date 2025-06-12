@@ -44,7 +44,6 @@
           checks = {
             tests = pkgs.callPackage ./checks/tests.nix {
               inherit nix-hyperfine;
-              nixpkgs = inputs.nixpkgs;
             };
           };
         };
