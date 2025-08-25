@@ -2,6 +2,7 @@
 
 import argparse
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -156,8 +157,6 @@ def parse_args(argv: list[str] | None = None) -> ParsedArgs:
         ParsedArgs containing derivation specs, benchmark mode, and hyperfine args
 
     """
-    import sys
-
     if argv is None:
         argv = sys.argv
 

@@ -21,7 +21,7 @@ def add_experimental_flags(cmd: list[str]) -> list[str]:
     # Commands that need experimental features
     if cmd[0] == "nix" and len(cmd) > 1:
         # Add experimental features after the nix command but before subcommand
-        return [cmd[0], "--extra-experimental-features", "nix-command flakes"] + cmd[1:]
+        return [cmd[0], "--extra-experimental-features", "nix-command flakes", *cmd[1:]]
 
     return cmd
 
