@@ -1,5 +1,7 @@
 """Pytest configuration for nix-hyperfine tests."""
 
+import shutil
+import tempfile
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -20,8 +22,6 @@ def nix_test_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[No
     """Set up Nix environment for testing to avoid store conflicts."""
     # We're in a sandboxed environment, set up alternative paths
     # Use /tmp for Nix store to avoid sandbox-build-dir conflicts
-    import tempfile
-
     # Create a unique directory in /tmp for the Nix store
     nix_root = Path(tempfile.mkdtemp(prefix="nix-test-"))
 
@@ -74,6 +74,4 @@ sandbox = false
     try:
         yield
     finally:
-        import shutil
-
         shutil.rmtree(nix_root, ignore_errors=True)
