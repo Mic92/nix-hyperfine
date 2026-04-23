@@ -131,7 +131,7 @@ def parse_derivation_spec(spec: str) -> DerivationSpec:
         case s if "#" in s and not s.startswith("-"):
             # Flake reference like nixpkgs#hello
             parts = s.split("#", 1)
-            flake_ref = parts[0] if parts[0] else "."  # Empty flake ref means current directory
+            flake_ref = parts[0] or "."  # Empty flake ref means current directory
             return FlakeSpec(raw=spec, flake_ref=flake_ref, attribute=parts[1])
         case s if s.startswith("-f "):
             # File specification (-f file.nix [-A attr])
